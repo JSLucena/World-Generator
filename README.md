@@ -1,4 +1,7 @@
 # World-Generator
 
 
-World generation project . README will be updated as the development goes
+World generation project.
+
+
+## Currently fine-tuning the world generator.  

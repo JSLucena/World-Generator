@@ -30,36 +30,42 @@ func _ready():
 	#pass
 func generate():
 	$TileMap.clear()
+	$rainMap.clear()
+	$TemperatureMap.clear()
+	randomize()
 	noise.seed = noise_seed
 	noise.octaves = octaves
 	noise.period = period
 	noise.persistence = persistence
 	noise.lacunarity = lacunarity
 	
-	temperature_noise.seed = noise_seed + 1
+	temperature_noise.seed = noise_seed +1
 	temperature_noise.octaves = octaves
 	temperature_noise.period = period
-	temperature_noise.persistence = persistence
+	temperature_noise.persistence = persistence/2
 	temperature_noise.lacunarity = lacunarity
 	
 	rain_noise.seed = noise_seed + 2
-	rain_noise.octaves = octaves
-	rain_noise.period = period
-	rain_noise.persistence = persistence
+	rain_noise.octaves = octaves/2
+	rain_noise.period = period*1.25
+	rain_noise.persistence = persistence/2
 	rain_noise.lacunarity = lacunarity-0.5
 	
 	
 	for x in range(0,size_x):
 		for y in range(0,size_y):
 				var height = noise.get_noise_2d(x,y) * height_modifier
+				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height)
 				tile = get_tile_color(height) #This will probably be changed to include more biomes
 				rain_tile = get_rain_color(rain_noise.get_noise_2d(x,y))
 				
+				
+				temperature_tile = get_temperature_color(adjusted_temperature)
 				randomize()
 				biome_parameters[Vector2(x,y)] = [randf(),randf(),"test",height] #values are (temperature,rain,type,avg_height)
 				#print(biome_parameters[Vector2(x,y)])
 				$TileMap.set_cell(x,y,tile)
-				
+				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
 func mouse_map_information():
 	var mousePosition = $TileMap.world_to_map(get_global_mouse_position())
@@ -88,11 +94,11 @@ func get_tile_color(perlin): #Tile color is chosen by its height, using its nois
 		return 13
 	elif perlin > 0.2:
 		return 12
-	elif perlin > 0.1:
+	elif perlin > 0.05:
 		return 11
-	elif perlin > 0:
+	elif perlin > 0.01:
 		return 8
-	elif perlin > -0.05:
+	elif perlin > -0.1:
 		return 17
 	elif perlin > -0.2:
 		return 15
@@ -133,7 +139,50 @@ func get_rain_color(perlin):
 		return 15
 	else:
 		return 16
-	
+func get_temperature_color(temperature):
+	if temperature > 0.8:
+		return 16
+	elif temperature > 0.6:
+		return 15
+	elif temperature > 0.4:
+		return 14
+	elif temperature > 0.3:
+		return 13
+	elif temperature > 0.20:
+		return 12
+	elif temperature > 0.15:
+		return 11
+	elif temperature > 0.1:
+		return 10
+	elif temperature > 0.05:
+		return 9
+	elif temperature > 0:
+		return 8
+	elif temperature > -0.05:
+		return 7
+	elif temperature > -0.1:
+		return 6
+	elif temperature > -0.15:
+		return 5
+	elif temperature > -0.20:
+		return 4
+	elif temperature > -0.3:
+		return 3
+	elif temperature > -0.4:
+		return 2
+	elif temperature > -0.6:
+		return 1
+	else:
+		return 0
+
+func modify_temperature(temperature, height):
+	if height > 0:
+		return temperature - pow(height,2)
+	else:
+		 return temperature
+		
+		
+
 func _input(event):
 	if event is InputEventMouseMotion:
 		mouse_map_information()

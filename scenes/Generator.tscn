@@ -246,6 +246,11 @@ tile_set = ExtResource( 4 )
 cell_size = Vector2( 4, 4 )
 format = 1
 
+[node name="TemperatureMap" type="TileMap" parent="."]
+tile_set = ExtResource( 4 )
+cell_size = Vector2( 4, 4 )
+format = 1
+
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/small" to="." method="_on_small_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/medium" to="." method="_on_medium_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/large" to="." method="_on_large_pressed"]

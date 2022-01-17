@@ -408,7 +408,7 @@ margin_right = 195.0
 margin_bottom = 16.0
 rect_min_size = Vector2( 70, 16 )
 min_value = 1.0
-max_value = 16.0
+max_value = 9.0
 value = 1.0
 
 [node name="period" type="HBoxContainer" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
@@ -471,11 +471,74 @@ margin_right = 167.0
 margin_bottom = 20.0
 text = "peaks"
 
-[node name="generate" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
+[node name="lacunarity" type="HBoxContainer" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
 margin_top = 155.0
 margin_right = 195.0
-margin_bottom = 175.0
+margin_bottom = 179.0
+
+[node name="lacunarity" type="Label" parent="GUI/MarginContainer/PanelContainer/VBoxContainer/lacunarity"]
+margin_top = 5.0
+margin_right = 69.0
+margin_bottom = 19.0
+text = "Lacunarity:"
+
+[node name="lacunarity_box" type="SpinBox" parent="GUI/MarginContainer/PanelContainer/VBoxContainer/lacunarity"]
+margin_left = 73.0
+margin_right = 147.0
+margin_bottom = 24.0
+step = 0.1
+value = 2.0
+
+[node name="generate" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
+margin_top = 183.0
+margin_right = 195.0
+margin_bottom = 203.0
 text = "Generate"
+
+[node name="BiomeInfo" type="MarginContainer" parent="GUI"]
+margin_left = 2.0
+margin_top = 268.0
+margin_right = 209.0
+margin_bottom = 449.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GUI/BiomeInfo"]
+margin_right = 207.0
+margin_bottom = 181.0
+
+[node name="position" type="Label" parent="GUI/BiomeInfo/VBoxContainer"]
+margin_right = 207.0
+margin_bottom = 14.0
+text = "(X,Y)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="type" type="Label" parent="GUI/BiomeInfo/VBoxContainer"]
+margin_top = 18.0
+margin_right = 207.0
+margin_bottom = 32.0
+text = "value"
+
+[node name="temp" type="Label" parent="GUI/BiomeInfo/VBoxContainer"]
+margin_top = 36.0
+margin_right = 207.0
+margin_bottom = 50.0
+text = "Temperature : value"
+
+[node name="rain" type="Label" parent="GUI/BiomeInfo/VBoxContainer"]
+margin_top = 54.0
+margin_right = 207.0
+margin_bottom = 68.0
+text = "rain : value"
+
+[node name="height" type="Label" parent="GUI/BiomeInfo/VBoxContainer"]
+margin_top = 72.0
+margin_right = 207.0
+margin_bottom = 86.0
+text = "average height : value"
 
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/small" to="." method="_on_small_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/medium" to="." method="_on_medium_pressed"]
@@ -487,4 +550,5 @@ text = "Generate"
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/height_modifier/flatter" to="." method="_on_flatter_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/height_modifier/normal" to="." method="_on_normal_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/height_modifier/peaks" to="." method="_on_peaks_pressed"]
+[connection signal="value_changed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/lacunarity/lacunarity_box" to="." method="_on_lacunarity_box_value_changed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/generate" to="." method="_on_generate_pressed"]

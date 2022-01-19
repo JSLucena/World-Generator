@@ -15,7 +15,7 @@ var rain_noise = OpenSimplexNoise.new()
 var tile : int = 0
 var rain_tile : int = 0
 var temperature_tile : int = 0
-export var height_modifier = 1.0 # Variable to increase/decrease peak and valley height
+export var height_modifier = 1.0 # Dumb solution, but this is used to increase/decrease altitude from peaks/valleys
 var biome_parameters = {} #Key is position on tilegrid, values are (temperature,rain,type,avg_height)
 
 
@@ -28,17 +28,20 @@ func _ready():
 #func _process(delta):
 #	mouse_map_information()
 	#pass
-func generate():
+func generate(): #Generates the height map, rain map and temperature map
 	$TileMap.clear()
 	$rainMap.clear()
 	$TemperatureMap.clear()
-	randomize()
+	#randomize()
 	noise.seed = noise_seed
 	noise.octaves = octaves
 	noise.period = period
 	noise.persistence = persistence
 	noise.lacunarity = lacunarity
 	
+	
+	
+	#### THIS IS ALL TRIAL AND ERROR SO IT LOOKS LIKE SHJIT
 	temperature_noise.seed = noise_seed +1
 	temperature_noise.octaves = octaves
 	temperature_noise.period = period
@@ -50,20 +53,20 @@ func generate():
 	rain_noise.period = period*1.25
 	rain_noise.persistence = persistence/2
 	rain_noise.lacunarity = lacunarity-0.5
-	
+	########################################################
 	
 	for x in range(0,size_x):
 		for y in range(0,size_y):
 				var height = noise.get_noise_2d(x,y) * height_modifier
 				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height)
+				var rain = rain_noise.get_noise_2d(x,y)
 				tile = get_tile_color(height) #This will probably be changed to include more biomes
-				rain_tile = get_rain_color(rain_noise.get_noise_2d(x,y))
+				rain_tile = get_rain_color(rain)
 				
 				
 				temperature_tile = get_temperature_color(adjusted_temperature)
-				randomize()
-				biome_parameters[Vector2(x,y)] = [randf(),randf(),"test",height] #values are (temperature,rain,type,avg_height)
-				#print(biome_parameters[Vector2(x,y)])
+				biome_parameters[Vector2(x,y)] = [adjusted_temperature,rain,"test",height] #values are (temperature,rain,type,avg_height)
+				
 				$TileMap.set_cell(x,y,tile)
 				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
@@ -177,7 +180,7 @@ func get_temperature_color(temperature):
 
 func modify_temperature(temperature, height):
 	if height > 0:
-		return temperature - pow(height,2)
+		return temperature - pow(height,1.5)
 	else:
 		 return temperature
 		

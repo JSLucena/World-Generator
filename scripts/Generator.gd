@@ -18,6 +18,8 @@ var temperature_tile : int = 0
 export var height_modifier = 1.0 # Variable to increase/decrease peak and valley height
 var biome_parameters = {} #Key is position on tilegrid, values are (temperature,rain,type,avg_height)
 
+var air_masses = {} #Dictionary containing each air mais route and speed
+var air_mass_count : int = 0
 
 func _ready():
 	generate()
@@ -56,32 +58,73 @@ func generate():
 		for y in range(0,size_y):
 				var height = noise.get_noise_2d(x,y) * height_modifier
 				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height)
+				var adjusted_rain = modify_rain(rain_noise.get_noise_2d(x,y),height)
 				tile = get_tile_color(height) #This will probably be changed to include more biomes
-				rain_tile = get_rain_color(rain_noise.get_noise_2d(x,y))
+				rain_tile = get_rain_color(adjusted_rain)
 				
 				
 				temperature_tile = get_temperature_color(adjusted_temperature)
 				randomize()
-				biome_parameters[Vector2(x,y)] = [randf(),randf(),"test",height] #values are (temperature,rain,type,avg_height)
+				biome_parameters[Vector2(x,y)] = [adjusted_temperature,adjusted_rain,"test",height] #values are (temperature,rain,type,avg_height)
 				#print(biome_parameters[Vector2(x,y)])
 				$TileMap.set_cell(x,y,tile)
 				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
+
 func mouse_map_information():
 	var mousePosition = $TileMap.world_to_map(get_global_mouse_position())
-	if(mousePosition.x > 0 and mousePosition.x < size_x and mousePosition.y > 0 and mousePosition.y < size_y):
+	if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
 		$GUI/BiomeInfo/VBoxContainer/height.set_text("average height : " + String(biome_parameters[mousePosition][3]) )
 		$GUI/BiomeInfo/VBoxContainer/position.set_text(String(mousePosition) )
 		$GUI/BiomeInfo/VBoxContainer/type.set_text(biome_parameters[mousePosition][2])
 		$GUI/BiomeInfo/VBoxContainer/temp.set_text("temperature : " + String(biome_parameters[mousePosition][0]) )
 		$GUI/BiomeInfo/VBoxContainer/rain.set_text("rain : " + String(biome_parameters[mousePosition][1]) )
-	#print(mousePosition)
+
 
 	
 
-
-
-
+func generate_air_mass():
+	randomize()
+	
+	
+	# Individual air mass configuration
+	var air_mass = Line2D.new()
+	var temp_point : Vector2 = Vector2(0,0)
+	air_mass.add_point(Vector2((randi()%256)*4,(randi()%256)*4))
+	
+	air_mass.set_begin_cap_mode(1)
+	air_mass.set_end_cap_mode(2)
+	air_mass.set_default_color(Color( 1,1, 1, 1 ))
+	air_mass.set_width(4.0)
+	air_mass.set_position(Vector2(0,0))
+	air_mass.set_visible(true)
+	
+	var speed = randf() # the speed will be used to enable air masses to go up
+	
+	while(get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1)) != Vector2(-1,-1)): #While our current point is not the lowest between its neighbours we keep adding points
+		temp_point = get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1)) #There is probably a way to do this without calling the function twice, Too bad!
+		air_mass.add_point(temp_point)
+	
+	print(air_mass.points)
+	add_child(air_mass)
+	air_masses[air_mass_count] = [air_mass, speed] #This may be used later so I'll store it
+	
+	
+func get_lowest_point(current_point): #Find lowest point from its neighbours. This creates the air mass flow
+	#Current point is divided by 4 so that we can get height informations from the tilemap, which has 4 pixel tiles
+	var lowest = current_point/4
+	for x in range(-1, 2):
+		for y in range(-1, 2):
+			var neighbour = current_point/4 + Vector2(x,y)
+			if neighbour.x >= 0 and neighbour.y >= 0 and neighbour.x < size_x and neighbour.y < size_y:
+				if biome_parameters[neighbour][3] < biome_parameters[lowest][3]:
+					lowest = neighbour
+					
+	
+	if lowest == current_point/4:
+		return Vector2(-1,-1)
+	else:
+		return lowest*4 #multiply by four so we dont fuck up the line drawing
 
 func get_tile_color(perlin): #Tile color is chosen by its height, using its noise value
 	if perlin > 0.8:
@@ -92,15 +135,15 @@ func get_tile_color(perlin): #Tile color is chosen by its height, using its nois
 		return 4
 	elif perlin > 0.3:
 		return 13
-	elif perlin > 0.2:
+	elif perlin > 0.15:
 		return 12
-	elif perlin > 0.05:
+	elif perlin > 0.03:
 		return 11
-	elif perlin > 0.01:
+	elif perlin > 0:
 		return 8
-	elif perlin > -0.1:
+	elif perlin > -0.05:
 		return 17
-	elif perlin > -0.2:
+	elif perlin > -0.1:
 		return 15
 	else:
 		return 16
@@ -179,9 +222,12 @@ func modify_temperature(temperature, height):
 	if height > 0:
 		return temperature - pow(height,2)
 	else:
-		 return temperature
-		
-		
+		 return temperature	
+func modify_rain(rain, height):
+	if height < 0:
+		return rain + pow(height,2)*2
+	else:
+		return rain
 
 func _input(event):
 	if event is InputEventMouseMotion:
@@ -221,4 +267,7 @@ func _on_peaks_pressed():
 
 func _on_lacunarity_box_value_changed(value):
 	lacunarity = value
-	pass # Replace with function body.
+
+
+func _on_generateAirMass_pressed():
+	generate_air_mass()

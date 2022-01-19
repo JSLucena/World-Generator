@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://scripts/Generator.gd" type="Script" id=1]
 [ext_resource path="res://resources/tileset/tileset.tres" type="TileSet" id=2]
 [ext_resource path="res://scripts/screen.gd" type="Script" id=3]
 [ext_resource path="res://resources/tileset/rain_temp.tres" type="TileSet" id=4]
+[ext_resource path="res://resources/tileset/tileset.png" type="Texture" id=5]
 
 [node name="Generator" type="Node2D"]
 script = ExtResource( 1 )
@@ -190,10 +191,16 @@ margin_bottom = 24.0
 step = 0.1
 value = 2.0
 
-[node name="generate" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
+[node name="generateAirMass" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
 margin_top = 183.0
 margin_right = 195.0
 margin_bottom = 203.0
+text = "Generate Air Mass"
+
+[node name="generate" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
+margin_top = 207.0
+margin_right = 195.0
+margin_bottom = 227.0
 text = "Generate"
 
 [node name="BiomeInfo" type="MarginContainer" parent="GUI"]
@@ -251,6 +258,15 @@ tile_set = ExtResource( 4 )
 cell_size = Vector2( 4, 4 )
 format = 1
 
+[node name="LineTexture" type="Sprite" parent="."]
+scale = Vector2( 0.25, 0.25 )
+texture = ExtResource( 5 )
+
+[node name="airMass" type="Line2D" parent="."]
+points = PoolVector2Array( 100, -37 )
+width = 4.0
+default_color = Color( 0.992157, 0.992157, 0.992157, 1 )
+
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/small" to="." method="_on_small_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/medium" to="." method="_on_medium_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/large" to="." method="_on_large_pressed"]
@@ -262,4 +278,5 @@ format = 1
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/height_modifier/normal" to="." method="_on_normal_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/height_modifier/peaks" to="." method="_on_peaks_pressed"]
 [connection signal="value_changed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/lacunarity/lacunarity_box" to="." method="_on_lacunarity_box_value_changed"]
+[connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/generateAirMass" to="." method="_on_generateAirMass_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/generate" to="." method="_on_generate_pressed"]

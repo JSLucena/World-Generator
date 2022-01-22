@@ -20,6 +20,15 @@ var biome_parameters = {} #Key is position on tilegrid, values are (temperature,
 
 var air_masses = {} #Dictionary containing each air mais route and speed
 var air_mass_count : int = 0
+var speed : int = 0 # the speed will be used to enable air masses to go up
+var going_up : bool = false
+var empty_count = 0
+
+class customSort:
+	static func sort_second(a,b):
+		return a[1] < b[1]
+
+
 
 func _ready():
 	generate()
@@ -90,7 +99,7 @@ func generate_air_mass():
 	# Individual air mass configuration
 	var air_mass = Line2D.new()
 	var temp_point : Vector2 = Vector2(0,0)
-	air_mass.add_point(Vector2((randi()%256)*4,(randi()%256)*4))
+	air_mass.add_point(Vector2((randi()%size_x)*4,(randi()%size_y)*4))
 	
 	air_mass.set_begin_cap_mode(1)
 	air_mass.set_end_cap_mode(2)
@@ -99,33 +108,73 @@ func generate_air_mass():
 	air_mass.set_position(Vector2(0,0))
 	air_mass.set_visible(true)
 	
-	var speed = randf() # the speed will be used to enable air masses to go up
-	
-	while(get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1)) != Vector2(-1,-1)): #While our current point is not the lowest between its neighbours we keep adding points
-		temp_point = get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1)) #There is probably a way to do this without calling the function twice, Too bad!
+	#speed = randi() % 100 # the speed will be used to enable air masses to go up
+	speed = 100
+	going_up = true
+	empty_count = 0
+	while(temp_point != Vector2(-1,-1)): #While our current point is not the lowest between its neighbours we keep adding points
+		
+		temp_point = get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1),air_mass) #Is this better, IDK
+		if temp_point == Vector2(-1,-1):
+			break
 		air_mass.add_point(temp_point)
+	#	print(speed)
 	
-	print(air_mass.points)
+	#print(air_mass.points)
+	#print("###########################")
 	add_child(air_mass)
 	air_masses[air_mass_count] = [air_mass, speed] #This may be used later so I'll store it
 	
 	
-func get_lowest_point(current_point): #Find lowest point from its neighbours. This creates the air mass flow
+func get_lowest_point(current_point, air_mass): #Find lowest point from its neighbours. This creates the air mass flow
 	#Current point is divided by 4 so that we can get height informations from the tilemap, which has 4 pixel tiles
-	var lowest = current_point/4
+	
+	var neighbour_list = []
 	for x in range(-1, 2):
 		for y in range(-1, 2):
 			var neighbour = current_point/4 + Vector2(x,y)
 			if neighbour.x >= 0 and neighbour.y >= 0 and neighbour.x < size_x and neighbour.y < size_y:
-				if biome_parameters[neighbour][3] < biome_parameters[lowest][3]:
-					lowest = neighbour
-					
+				if going_up == false:
+					if biome_parameters[neighbour][3] < biome_parameters[current_point/4][3]:
+						if(!find_point(neighbour*4,air_mass)):
+							neighbour_list.append([neighbour,biome_parameters[neighbour][3]])
+				else:
+					if biome_parameters[neighbour][3] > biome_parameters[current_point/4][3]:
+						if(!find_point(neighbour*4,air_mass)):
+							neighbour_list.append([neighbour,biome_parameters[neighbour][3]])
+	neighbour_list.sort_custom(customSort,"sort_second") #All neighbours that are not already on the line are added and sorted by height
 	
-	if lowest == current_point/4:
+	
+	if(neighbour_list.empty()):
+		empty_count+=1
+		
+		if empty_count > 30:
+			return Vector2(-1,-1)
+		if going_up == true:
+			going_up = false
+			return current_point #returns a duplicate so to connect the rest of the trajectory
+		else:
+			if speed > 10:
+				going_up = true
+				return current_point #returns a duplicate so to connect the rest of the trajectory
 		return Vector2(-1,-1)
-	else:
-		return lowest*4 #multiply by four so we dont fuck up the line drawing
+	
+	var ret_point
+	if going_up == true:
+		ret_point = neighbour_list[0][0]
+		if speed > biome_parameters[ret_point][3]*10:
+				speed -= biome_parameters[ret_point][3]*10
+		else:
+			speed = 0
+			going_up = false
+	ret_point = neighbour_list[-1][0]
+	return ret_point*4 #multiply by four so we dont fuck up the line drawing
 
+func find_point(point,line):
+	for i in line.get_point_count():
+		if point == line.get_point_position(i):
+			return true
+	return false
 func get_tile_color(perlin): #Tile color is chosen by its height, using its noise value
 	if perlin > 0.8:
 		return 5
@@ -271,3 +320,7 @@ func _on_lacunarity_box_value_changed(value):
 
 func _on_generateAirMass_pressed():
 	generate_air_mass()
+
+
+
+

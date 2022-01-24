@@ -90,85 +90,93 @@ func mouse_map_information():
 		$GUI/BiomeInfo/VBoxContainer/rain.set_text("rain : " + String(biome_parameters[mousePosition][1]) )
 
 
-	
 
+func generate_quadrant():
+	return randi() % 4 #0 = top-left, 1 = top-right, 2 = bottom-left, 3 = bottom-right
+	
+func generate_quadrant_point(quadrant):  #Generates a random point inside chosen quadrant
+	match quadrant:
+		0: return Vector2(randi()%size_x/2,randi()%size_y/2)
+		1: return Vector2(randi()%size_x/2 + size_x/2,randi()%size_y/2)
+		2: return Vector2(randi()%size_x/2,randi()%size_y/2 + size_y/2)
+		3: return Vector2(randi()%size_x/2 + size_x/2,randi()%size_y/2 + size_y/2)
+
+func get_air_direction(start,end):
+	var direction_dictionary = { #Little Gambiarra I did, it works
+	Vector2(0,0):[Vector2(1,-1),Vector2(1,0),Vector2(1,1)],
+	Vector2(0,1):[Vector2(1,-1),Vector2(1,0),Vector2(1,1)],
+	Vector2(0,2):[Vector2(0,1),Vector2(-1,1),Vector2(1,1)],
+	Vector2(0,3):[Vector2(1,1),Vector2(0,1),Vector2(1,0)],
+	Vector2(1,0):[Vector2(-1,-1),Vector2(-1,0),Vector2(-1,1)],
+	Vector2(1,1):[Vector2(0,1),Vector2(-1,1),Vector2(1,1)],
+	Vector2(1,2):[Vector2(-1,1),Vector2(0,1),Vector2(-1,0)],
+	Vector2(1,3):[Vector2(0,1),Vector2(-1,1),Vector2(1,1)],
+	Vector2(2,0):[Vector2(0,-1),Vector2(1,-1),Vector2(-1,-1)],
+	Vector2(2,1):[Vector2(1,-1),Vector2(0,-1),Vector2(1,0)],
+	Vector2(2,2):[Vector2(0,-1),Vector2(1,-1),Vector2(-1,-1)],
+	Vector2(2,3):[Vector2(1,-1),Vector2(1,0),Vector2(1,1)],
+	Vector2(3,0):[Vector2(-1,-1),Vector2(0,-1),Vector2(-1,0)],
+	Vector2(3,1):[Vector2(0,-1),Vector2(-1,-1),Vector2(1,-1)],
+	Vector2(3,2):[Vector2(-1,-1),Vector2(-1,0),Vector2(-1,1)],
+	Vector2(3,3):[Vector2(1,-1),Vector2(1,0),Vector2(1,1)],
+	}
+	return direction_dictionary[Vector2(start,end)]
+	
 func generate_air_mass():
 	randomize()
 	
+	var start_quadrant = generate_quadrant() # start and end quadrants used to calculate the trajectory the wind may travel
+	var end_quadrant = generate_quadrant() 
+	var start_point = generate_quadrant_point(start_quadrant)
+	var directions = get_air_direction(start_quadrant,end_quadrant)
 	
 	# Individual air mass configuration
 	var air_mass = Line2D.new()
 	var temp_point : Vector2 = Vector2(0,0)
-	air_mass.add_point(Vector2((randi()%size_x)*4,(randi()%size_y)*4))
-	
-	air_mass.set_begin_cap_mode(1)
-	air_mass.set_end_cap_mode(2)
+	air_mass.add_point(start_point*4)
+	air_mass.set_begin_cap_mode(1) #square
+	air_mass.set_end_cap_mode(2) #round
 	air_mass.set_default_color(Color( 1,1, 1, 1 ))
 	air_mass.set_width(4.0)
 	air_mass.set_position(Vector2(0,0))
 	air_mass.set_visible(true)
 	
-	#speed = randi() % 100 # the speed will be used to enable air masses to go up
-	speed = 100
+	speed = size_x/2 + randi() % size_x #Speed is the max amount of points each air mass may have. Could the variable be named distance? Yes, but Im lazy so....
 	going_up = true
 	empty_count = 0
-	while(temp_point != Vector2(-1,-1)): #While our current point is not the lowest between its neighbours we keep adding points
+	while(temp_point != Vector2(-1,-1)): #While there are still valid options to travel to
 		
-		temp_point = get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1),air_mass) #Is this better, IDK
+		temp_point = get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1),air_mass, directions) #Is this better, IDK
 		if temp_point == Vector2(-1,-1):
 			break
 		air_mass.add_point(temp_point)
-	#	print(speed)
 	
-	#print(air_mass.points)
-	#print("###########################")
+	print(air_mass.points)
+	print("###########################")
 	add_child(air_mass)
 	air_masses[air_mass_count] = [air_mass, speed] #This may be used later so I'll store it
 	
 	
-func get_lowest_point(current_point, air_mass): #Find lowest point from its neighbours. This creates the air mass flow
+func get_lowest_point(current_point, air_mass, directions): #Find lowest point from its neighbours. This creates the air mass flow
 	#Current point is divided by 4 so that we can get height informations from the tilemap, which has 4 pixel tiles
 	
+	var cur_by4 = current_point/4
+	
 	var neighbour_list = []
-	for x in range(-1, 2):
-		for y in range(-1, 2):
-			var neighbour = current_point/4 + Vector2(x,y)
-			if neighbour.x >= 0 and neighbour.y >= 0 and neighbour.x < size_x and neighbour.y < size_y:
-				if going_up == false:
-					if biome_parameters[neighbour][3] < biome_parameters[current_point/4][3]:
-						if(!find_point(neighbour*4,air_mass)):
-							neighbour_list.append([neighbour,biome_parameters[neighbour][3]])
-				else:
-					if biome_parameters[neighbour][3] > biome_parameters[current_point/4][3]:
-						if(!find_point(neighbour*4,air_mass)):
-							neighbour_list.append([neighbour,biome_parameters[neighbour][3]])
-	neighbour_list.sort_custom(customSort,"sort_second") #All neighbours that are not already on the line are added and sorted by height
+	for point in directions: #We use that direction dictionary here.
+		var neighbour = cur_by4 + point
+		if neighbour.x >= 0 and neighbour.y >= 0 and neighbour.x < size_x and neighbour.y < size_y:
+			if(!find_point(neighbour,air_mass)):
+				neighbour_list.append([neighbour,biome_parameters[neighbour][3]])
 	
-	
+	neighbour_list.sort_custom(customSort,"sort_second") #All neighbours that are not already on the line are added and sorted by height	
 	if(neighbour_list.empty()):
-		empty_count+=1
-		
-		if empty_count > 30:
-			return Vector2(-1,-1)
-		if going_up == true:
-			going_up = false
-			return current_point #returns a duplicate so to connect the rest of the trajectory
-		else:
-			if speed > 10:
-				going_up = true
-				return current_point #returns a duplicate so to connect the rest of the trajectory
 		return Vector2(-1,-1)
-	
-	var ret_point
-	if going_up == true:
-		ret_point = neighbour_list[0][0]
-		if speed > biome_parameters[ret_point][3]*10:
-				speed -= biome_parameters[ret_point][3]*10
-		else:
-			speed = 0
-			going_up = false
-	ret_point = neighbour_list[-1][0]
-	return ret_point*4 #multiply by four so we dont fuck up the line drawing
+	if speed > 0:
+		speed -= 1
+		return neighbour_list[0][0]*4
+	else:
+		return Vector2(-1,-1)
 
 func find_point(point,line):
 	for i in line.get_point_count():

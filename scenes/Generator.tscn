@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://scripts/Generator.gd" type="Script" id=1]
 [ext_resource path="res://resources/tileset/tileset.tres" type="TileSet" id=2]
 [ext_resource path="res://scripts/screen.gd" type="Script" id=3]
 [ext_resource path="res://resources/tileset/rain_temp.tres" type="TileSet" id=4]
 [ext_resource path="res://resources/tileset/tileset.png" type="Texture" id=5]
+[ext_resource path="res://scripts/Hemisphere.gd" type="Script" id=6]
 
 [node name="Generator" type="Node2D"]
 script = ExtResource( 1 )
@@ -197,10 +198,16 @@ margin_right = 195.0
 margin_bottom = 203.0
 text = "Generate Air Mass"
 
-[node name="generate" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
+[node name="Hemisphere" type="OptionButton" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
 margin_top = 207.0
 margin_right = 195.0
 margin_bottom = 227.0
+script = ExtResource( 6 )
+
+[node name="generate" type="Button" parent="GUI/MarginContainer/PanelContainer/VBoxContainer"]
+margin_top = 231.0
+margin_right = 195.0
+margin_bottom = 251.0
 text = "Generate"
 
 [node name="BiomeInfo" type="MarginContainer" parent="GUI"]
@@ -280,4 +287,5 @@ default_color = Color( 0.992157, 0.992157, 0.992157, 1 )
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/height_modifier/peaks" to="." method="_on_peaks_pressed"]
 [connection signal="value_changed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/lacunarity/lacunarity_box" to="." method="_on_lacunarity_box_value_changed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/generateAirMass" to="." method="_on_generateAirMass_pressed"]
+[connection signal="item_selected" from="GUI/MarginContainer/PanelContainer/VBoxContainer/Hemisphere" to="." method="_on_Hemisphere_item_selected"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/generate" to="." method="_on_generate_pressed"]

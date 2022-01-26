@@ -4,9 +4,9 @@ extends Node2D
 export var size_x : int = 256 #Map size
 export var size_y : int = 256 #Map size
 export var noise_seed : int = 1
-export var octaves  : int = 4
+export var octaves  : int = 7
 export var period : float = 100.0
-export var persistence : float = 0.5
+export var persistence : float = 0.7
 export var lacunarity : float = 2.0
 
 var noise = OpenSimplexNoise.new()
@@ -17,8 +17,9 @@ var rain_tile : int = 0
 var temperature_tile : int = 0
 export var height_modifier = 1.0 # Variable to increase/decrease peak and valley height
 var biome_parameters = {} #Key is position on tilegrid, values are (temperature,rain,type,avg_height)
+export var hemisphere : bool = false # false = south , true = north
 
-var air_masses = {} #Dictionary containing each air mais route and speed
+var air_masses = {} #Dictionary containing each air mais route,speed, temperature and rain values from the starting point
 var air_mass_count : int = 0
 var speed : int = 0 # the speed will be used to enable air masses to go up
 var going_up : bool = false
@@ -66,7 +67,7 @@ func generate():
 	for x in range(0,size_x):
 		for y in range(0,size_y):
 				var height = noise.get_noise_2d(x,y) * height_modifier
-				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height)
+				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height,y)
 				var adjusted_rain = modify_rain(rain_noise.get_noise_2d(x,y),height)
 				tile = get_tile_color(height) #This will probably be changed to include more biomes
 				rain_tile = get_rain_color(adjusted_rain)
@@ -151,10 +152,12 @@ func generate_air_mass():
 			break
 		air_mass.add_point(temp_point)
 	
-	print(air_mass.points)
-	print("###########################")
+	
+	#print("###########################")
 	add_child(air_mass)
-	air_masses[air_mass_count] = [air_mass, speed] #This may be used later so I'll store it
+	air_masses[air_mass_count] = [air_mass, biome_parameters[start_point][0],biome_parameters[start_point][1]] #This may be used later so I'll store it
+	print(air_masses[air_mass_count])
+	apply_airmass(air_mass)
 	
 	
 func get_lowest_point(current_point, air_mass, directions): #Find lowest point from its neighbours. This creates the air mass flow
@@ -275,11 +278,60 @@ func get_temperature_color(temperature):
 	else:
 		return 0
 
-func modify_temperature(temperature, height):
-	if height > 0:
-		return temperature - pow(height,2)
+
+func apply_airmass(airmass):
+	var start_point = airmass.get_point_position(0)/4
+	for i in range(0,airmass.get_point_count(),5): #Need a better solution. Im not sure if storing all points in a list and searching it is viable
+		var current_point = airmass.get_point_position(i)/4
+		for x in range(0,10):
+			for y in range(0,10):
+				#We look for the closest tiles in range 10 near our point
+				var new_point = current_point + Vector2(x,y)
+				if new_point.x >= 0 and new_point.y >= 0 and new_point.x < size_x and new_point.y < size_y: #boundary check
+					var old_temperature = biome_parameters[new_point][0]
+					var old_rain = biome_parameters[new_point][1]
+					var new_temperature = calculate_new_tile_parameters(old_temperature,biome_parameters[start_point][0],max(x,y))
+					var new_rain = calculate_new_tile_parameters(old_rain,biome_parameters[start_point][1],max(x,y))
+					var new_type = biome_parameters[new_point][2]
+					biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
+	redraw_climate_maps()
+	
+	
+func calculate_new_tile_parameters(current_value,modifier,distance): #damn hahaha, is there a better way to do this?
+	match distance:
+		0: return current_value + modifier * 0.6
+		1: return current_value + modifier * 0.5
+		2: return current_value + modifier * 0.4
+		3: return current_value + modifier * 0.3
+		4: return current_value + modifier * 0.2
+		5: return current_value + modifier * 0.1
+		6: return current_value + modifier * 0.08
+		7: return current_value + modifier * 0.06
+		8: return current_value + modifier * 0.04
+		9: return current_value + modifier * 0.02
+		
+
+
+func redraw_climate_maps(): #debug function, probably not needed after
+	for x in range(0,size_x):
+		for y in range(0,size_y):
+				
+				rain_tile = get_rain_color(biome_parameters[Vector2(x,y)][1])
+				temperature_tile = get_temperature_color(biome_parameters[Vector2(x,y)][0])
+				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
+				$rainMap.set_cell(x-size_x,y,rain_tile)
+
+func modify_temperature(temperature, height,y):
+	
+	var exponent : float
+	if hemisphere == true:
+		exponent = float(y)/size_y
 	else:
-		 return temperature	
+		exponent = float(-y)/size_y
+	if height > 0:
+		return temperature + exponent/8 - pow(height,2)
+	else:
+		 return temperature + exponent/8
 func modify_rain(rain, height):
 	if height < 0:
 		return rain + pow(height,2)*2
@@ -330,5 +382,8 @@ func _on_generateAirMass_pressed():
 	generate_air_mass()
 
 
-
-
+func _on_Hemisphere_item_selected(index):
+	if index == 0:
+		hemisphere = false
+	elif index == 1:
+		hemisphere = true

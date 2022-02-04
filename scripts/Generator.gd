@@ -280,35 +280,45 @@ func get_temperature_color(temperature):
 
 
 func apply_airmass(airmass):
+	var point_dict = {}
 	var start_point = airmass.get_point_position(0)/4
-	for i in range(0,airmass.get_point_count(),5): #Need a better solution. Im not sure if storing all points in a list and searching it is viable
+	for i in range(0,airmass.get_point_count()): #Need a better solution. Im not sure if storing all points in a list and searching it is viable
 		var current_point = airmass.get_point_position(i)/4
-		for x in range(0,10):
-			for y in range(0,10):
+		for x in range(0,16):
+			for y in range(0,16):
 				#We look for the closest tiles in range 10 near our point
 				var new_point = current_point + Vector2(x,y)
 				if new_point.x >= 0 and new_point.y >= 0 and new_point.x < size_x and new_point.y < size_y: #boundary check
-					var old_temperature = biome_parameters[new_point][0]
-					var old_rain = biome_parameters[new_point][1]
-					var new_temperature = calculate_new_tile_parameters(old_temperature,biome_parameters[start_point][0],max(x,y))
-					var new_rain = calculate_new_tile_parameters(old_rain,biome_parameters[start_point][1],max(x,y))
-					var new_type = biome_parameters[new_point][2]
-					biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
+					if !(point_dict.has(new_point)):
+						var old_temperature = biome_parameters[new_point][0]
+						var old_rain = biome_parameters[new_point][1]
+						var new_temperature = calculate_new_tile_parameters(old_temperature,biome_parameters[start_point][0],max(x,y))
+						var new_rain = calculate_new_tile_parameters(old_rain,biome_parameters[start_point][1],max(x,y))
+						var new_type = biome_parameters[new_point][2] # replace
+						biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
+						point_dict[new_point] = 1
 	redraw_climate_maps()
 	
 	
 func calculate_new_tile_parameters(current_value,modifier,distance): #damn hahaha, is there a better way to do this?
 	match distance:
-		0: return current_value + modifier * 0.6
-		1: return current_value + modifier * 0.5
-		2: return current_value + modifier * 0.4
-		3: return current_value + modifier * 0.3
-		4: return current_value + modifier * 0.2
-		5: return current_value + modifier * 0.1
-		6: return current_value + modifier * 0.08
-		7: return current_value + modifier * 0.06
-		8: return current_value + modifier * 0.04
-		9: return current_value + modifier * 0.02
+		0: return current_value + modifier * 0.8
+		1: return current_value + modifier * 0.75
+		2: return current_value + modifier * 0.65
+		3: return current_value + modifier * 0.5
+		4: return current_value + modifier * 0.4
+		5: return current_value + modifier * 0.3
+		6: return current_value + modifier * 0.2
+		7: return current_value + modifier * 0.1
+		8: return current_value + modifier * 0.08
+		9: return current_value + modifier * 0.07
+		10: return current_value + modifier * 0.06
+		11: return current_value + modifier * 0.05
+		12: return current_value + modifier * 0.03
+		13: return current_value + modifier * 0.01
+		14: return current_value + modifier * 0.008
+		15: return current_value + modifier * 0.004
+		16: return current_value + modifier * 0.002
 		
 
 
@@ -329,7 +339,7 @@ func modify_temperature(temperature, height,y):
 	else:
 		exponent = float(-y)/size_y
 	if height > 0:
-		return temperature + exponent/8 - pow(height,2)
+		return temperature + exponent/8 - abs(pow(height,1))
 	else:
 		 return temperature + exponent/8
 func modify_rain(rain, height):

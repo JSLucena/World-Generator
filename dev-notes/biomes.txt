@@ -14,7 +14,7 @@ Folhosa tropical seca	-> max temperatura / media umidade
 Conifera tropical	-> alta temperatura / media umidade
 Praia	-> media temperatura / media umidade
 planicie fria	-> baixa temperatura / media umidade
-	-> min temperatura / media umidade
+prado frio	-> min temperatura / media umidade
 
 Savana inundada-> max temperatura / alta umidade
 Folhosas tropical	-> alta temperatura / alta umidade

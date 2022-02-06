@@ -25,6 +25,41 @@ var speed : int = 0 # the speed will be used to enable air masses to go up
 var going_up : bool = false
 var empty_count = 0
 
+
+enum biomes{
+	DESERT = 0,
+	SAVANNA = 1,
+	BADLAND = 2,
+	FROZEN_SHRUBLAND = 3,
+	COLD_DESERT = 4,
+	CAATINGA = 5,
+	SHRUBLAND = 6,
+	PLAINS = 7,
+	ROCKS = 8,
+	FROZEN = 9,
+	BROADLEAF_DRY = 10,
+	PINE_TROPICAL = 11,
+	BEACH = 12,
+	COLD_PLAINS = 13,
+	COLD_MEADOW = 14,
+	FLOODED_SAVANNA = 15,
+	BROADLEAF = 16,
+	LAKES = 17,
+	MEADOW = 18,
+	GROVE = 19,
+	RAIN_FOREST = 20,
+	SWAMP = 21,
+	MIXED_FOREST = 22,
+	TAIGA = 23,
+	TUNDRA = 24,
+	DEEP_WATER = 25,
+	AVERAGE_WATER = 26,
+	SHALLOW_WATER = 27,
+	INLAND_WATER = 28
+}
+
+
+
 class customSort:
 	static func sort_second(a,b):
 		return a[1] < b[1]
@@ -32,7 +67,7 @@ class customSort:
 
 
 func _ready():
-	generate()
+	debug_generate()
 
 
 
@@ -40,7 +75,11 @@ func _ready():
 #func _process(delta):
 #	mouse_map_information()
 	#pass
-func generate():
+	
+
+
+
+func debug_generate():
 	$TileMap.clear()
 	$rainMap.clear()
 	$TemperatureMap.clear()
@@ -63,30 +102,33 @@ func generate():
 	rain_noise.persistence = persistence/2
 	rain_noise.lacunarity = lacunarity-0.5
 	
+
 	
 	for x in range(0,size_x):
 		for y in range(0,size_y):
 				var height = noise.get_noise_2d(x,y) * height_modifier
 				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height,y)
 				var adjusted_rain = modify_rain(rain_noise.get_noise_2d(x,y),height)
+				var biome = set_biome(height,adjusted_rain,adjusted_temperature)
 				tile = get_tile_color(height) #This will probably be changed to include more biomes
 				rain_tile = get_rain_color(adjusted_rain)
 				
 				
 				temperature_tile = get_temperature_color(adjusted_temperature)
 				randomize()
-				biome_parameters[Vector2(x,y)] = [adjusted_temperature,adjusted_rain,"test",height] #values are (temperature,rain,type,avg_height)
+				biome_parameters[Vector2(x,y)] = [adjusted_temperature,adjusted_rain,biome,height] #values are (temperature,rain,type,avg_height)
 				#print(biome_parameters[Vector2(x,y)])
 				$TileMap.set_cell(x,y,tile)
 				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
+	
 
 func mouse_map_information():
 	var mousePosition = $TileMap.world_to_map(get_global_mouse_position())
 	if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
 		$GUI/BiomeInfo/VBoxContainer/height.set_text("average height : " + String(biome_parameters[mousePosition][3]) )
 		$GUI/BiomeInfo/VBoxContainer/position.set_text(String(mousePosition) )
-		$GUI/BiomeInfo/VBoxContainer/type.set_text(biome_parameters[mousePosition][2])
+		$GUI/BiomeInfo/VBoxContainer/type.set_text(print_biome(biome_parameters[mousePosition][2]))
 		$GUI/BiomeInfo/VBoxContainer/temp.set_text("temperature : " + String(biome_parameters[mousePosition][0]) )
 		$GUI/BiomeInfo/VBoxContainer/rain.set_text("rain : " + String(biome_parameters[mousePosition][1]) )
 
@@ -131,6 +173,9 @@ func generate_air_mass():
 	var start_point = generate_quadrant_point(start_quadrant)
 	var directions = get_air_direction(start_quadrant,end_quadrant)
 	
+	
+	
+	
 	# Individual air mass configuration
 	var air_mass = Line2D.new()
 	var temp_point : Vector2 = Vector2(0,0)
@@ -158,7 +203,15 @@ func generate_air_mass():
 	air_masses[air_mass_count] = [air_mass, biome_parameters[start_point][0],biome_parameters[start_point][1]] #This may be used later so I'll store it
 	print(air_masses[air_mass_count])
 	apply_airmass(air_mass)
-	
+	var temp_array =[]
+	var rain_array = []
+	for key in biome_parameters.keys():
+		temp_array.append(biome_parameters[key][0])
+		rain_array.append(biome_parameters[key][1])
+	temp_array.sort()
+	rain_array.sort()
+	print("temp:",temp_array[0], " " , temp_array[-1])
+	print("rain:",rain_array[0], " " , rain_array[-1])
 	
 func get_lowest_point(current_point, air_mass, directions): #Find lowest point from its neighbours. This creates the air mass flow
 	#Current point is divided by 4 so that we can get height informations from the tilemap, which has 4 pixel tiles
@@ -186,6 +239,75 @@ func find_point(point,line):
 		if point == line.get_point_position(i):
 			return true
 	return false
+func set_biome(height,rain,temperature):
+	if(height < 0):
+		if height > -0.05:
+			return biomes.SHALLOW_WATER
+		elif height > -0.1:
+			return biomes.AVERAGE_WATER
+		else:
+			return biomes.DEEP_WATER
+	else:
+		if(temperature >= 1.0):
+			if rain >= 1.0:
+				return biomes.RAIN_FOREST
+			elif rain >= 0.5:
+				return biomes.FLOODED_SAVANNA
+			elif rain >= 0:
+				return biomes.BROADLEAF_DRY
+			elif rain >= -0.5:
+				return biomes.CAATINGA
+			else:
+				return biomes.DESERT
+		elif(temperature >= 0.5):
+			if rain >= 1.0:
+				return biomes.SWAMP
+			elif rain >= 0.5:
+				return biomes.BROADLEAF
+			elif rain >= 0:
+				return biomes.PINE_TROPICAL
+			elif rain >= -0.5:
+				return biomes.SHRUBLAND
+			else:
+				return biomes.SAVANNA
+		elif(temperature >= 0):
+			if rain >= 1.0:
+				return biomes.MIXED_FOREST
+			elif rain >= 0.5:
+				return biomes.LAKES
+			elif rain >= 0:
+				return biomes.BEACH
+			elif rain >= -0.5:
+				return biomes.PLAINS
+			else:
+				return biomes.BADLAND
+		elif(temperature >= -0.5):
+			if rain >= 1.0:
+				return biomes.TAIGA
+			elif rain >= 0.5:
+				return biomes.MEADOW
+			elif rain >= 0:
+				return biomes.COLD_PLAINS
+			elif rain >= -0.5:
+				return biomes.ROCKS
+			else:
+				return biomes.FROZEN_SHRUBLAND
+		else:
+			if rain >= 1.0:
+				return biomes.TUNDRA
+			elif rain >= 0.5:
+				return biomes.GROVE
+			elif rain >= 0:
+				return biomes.COLD_MEADOW
+			elif rain >= -0.5:
+				return biomes.FROZEN
+			else:
+				return biomes.COLD_DESERT
+				
+func draw_biomes():
+	for x in range(0,size_x):
+		for y in range(0,size_y):
+			$biomeMap.set_cell(x-size_x,y-size_y,biome_parameters[Vector2(x,y)][2])
 func get_tile_color(perlin): #Tile color is chosen by its height, using its noise value
 	if perlin > 0.8:
 		return 5
@@ -292,9 +414,10 @@ func apply_airmass(airmass):
 					if !(point_dict.has(new_point)):
 						var old_temperature = biome_parameters[new_point][0]
 						var old_rain = biome_parameters[new_point][1]
+						var height = biome_parameters[new_point][3]
 						var new_temperature = calculate_new_tile_parameters(old_temperature,biome_parameters[start_point][0],max(x,y))
 						var new_rain = calculate_new_tile_parameters(old_rain,biome_parameters[start_point][1],max(x,y))
-						var new_type = biome_parameters[new_point][2] # replace
+						var new_type = set_biome(height,new_rain,new_temperature) # replace
 						biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
 						point_dict[new_point] = 1
 	redraw_climate_maps()
@@ -330,7 +453,8 @@ func redraw_climate_maps(): #debug function, probably not needed after
 				temperature_tile = get_temperature_color(biome_parameters[Vector2(x,y)][0])
 				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
-
+				
+	draw_biomes()
 func modify_temperature(temperature, height,y):
 	
 	var exponent : float
@@ -347,6 +471,39 @@ func modify_rain(rain, height):
 		return rain + pow(height,2)*2
 	else:
 		return rain
+
+func print_biome(value):
+	match value:
+		biomes.AVERAGE_WATER : return "Average ocean"
+		biomes.BADLAND : return "Badlands"
+		biomes.BEACH : return "Beach"
+		biomes.BROADLEAF : return "Broadleaf forest"
+		biomes.BROADLEAF_DRY : return "Broadleaf dry"
+		biomes.CAATINGA : return "Caatinga"
+		biomes.COLD_DESERT : return "Frozen Desert"
+		biomes.COLD_MEADOW : return "Cold Meadow"
+		biomes.COLD_PLAINS : return "Cold Plains"
+		biomes.DEEP_WATER : return "Deep ocean"
+		biomes.DESERT : return "Desert"
+		biomes.FLOODED_SAVANNA : return "Flooded Savanna"
+		biomes.FROZEN : return "Frozen land"
+		biomes.FROZEN_SHRUBLAND : return "Frozen shrubland"
+		biomes.GROVE : return "Grove"
+		biomes.INLAND_WATER : return "Inland water"
+		biomes.LAKES : return "Lakes"
+		biomes.MEADOW :return "Meadow"
+		biomes.MIXED_FOREST : return "Mixed forest"
+		biomes.PINE_TROPICAL : return "Pine Forest"
+		biomes.PLAINS : return "Plains"
+		biomes.RAIN_FOREST : return "Rain Forest"
+		biomes.ROCKS : return "Rocky"
+		biomes.SAVANNA : return "Savanna"
+		biomes.SHALLOW_WATER : return "shallow ocean"
+		biomes.SHRUBLAND :return "Shrubland"
+		biomes.SWAMP : return "Swamp"
+		biomes.TAIGA : return "Taiga"
+		biomes.TUNDRA : return "Tundra"
+
 
 func _input(event):
 	if event is InputEventMouseMotion:
@@ -374,7 +531,7 @@ func _on_seed_box_value_changed(value):
 	noise_seed = value
 
 func _on_generate_pressed():
-	generate()
+	debug_generate()
 
 func _on_flatter_pressed():
 	height_modifier = 0.8

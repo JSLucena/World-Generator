@@ -18,6 +18,10 @@ var temperature_tile : int = 0
 export var height_modifier = 1.0 # Variable to increase/decrease peak and valley height
 var biome_parameters = {} #Key is position on tilegrid, values are (temperature,rain,type,avg_height)
 export var hemisphere : bool = false # false = south , true = north
+var rain_standard_deviation : float = 0
+var temperature_standard_deviation : float = 0
+
+
 
 var air_masses = {} #Dictionary containing each air mais route,speed, temperature and rain values from the starting point
 var air_mass_count : int = 0
@@ -67,6 +71,11 @@ class customSort:
 
 
 func _ready():
+	$GUI/BiomeInfo/VBoxContainer/height.set("custom_colors/font_color", Color(0,0,0))
+	$GUI/BiomeInfo/VBoxContainer/position.set("custom_colors/font_color", Color(0,0,0))
+	$GUI/BiomeInfo/VBoxContainer/rain.set("custom_colors/font_color", Color(0,0,0))
+	$GUI/BiomeInfo/VBoxContainer/temp.set("custom_colors/font_color", Color(0,0,0))
+	$GUI/BiomeInfo/VBoxContainer/type.set("custom_colors/font_color", Color(0,0,0))
 	debug_generate()
 
 
@@ -118,13 +127,13 @@ func debug_generate():
 				randomize()
 				biome_parameters[Vector2(x,y)] = [adjusted_temperature,adjusted_rain,biome,height] #values are (temperature,rain,type,avg_height)
 				#print(biome_parameters[Vector2(x,y)])
-				$TileMap.set_cell(x,y,tile)
-				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
+				$TileMap.set_cell(x,y-size_y,tile)
+				$TemperatureMap.set_cell(x-size_x,y-size_y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
-	
+	redraw_climate_maps()
 
 func mouse_map_information():
-	var mousePosition = $TileMap.world_to_map(get_global_mouse_position())
+	var mousePosition = $biomeMap.world_to_map(get_global_mouse_position())
 	if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
 		$GUI/BiomeInfo/VBoxContainer/height.set_text("average height : " + String(biome_parameters[mousePosition][3]) )
 		$GUI/BiomeInfo/VBoxContainer/position.set_text(String(mousePosition) )
@@ -201,18 +210,35 @@ func generate_air_mass():
 	#print("###########################")
 	add_child(air_mass)
 	air_masses[air_mass_count] = [air_mass, biome_parameters[start_point][0],biome_parameters[start_point][1]] #This may be used later so I'll store it
-	print(air_masses[air_mass_count])
-	apply_airmass(air_mass)
+	#print(air_masses[air_mass_count])
+	
+	
+	
 	var temp_array =[]
 	var rain_array = []
+	var acc1 = 0
+	var acc2 = 0
 	for key in biome_parameters.keys():
 		temp_array.append(biome_parameters[key][0])
+		acc1 += biome_parameters[key][0]
 		rain_array.append(biome_parameters[key][1])
+		acc2 = biome_parameters[key][1]
+		
+	rain_standard_deviation = standard_deviation(rain_array)
+	temperature_standard_deviation = standard_deviation(temp_array)
+	
+	
+	
+	
+	#######DEBUGGING#####
+	
 	temp_array.sort()
 	rain_array.sort()
-	print("temp:",temp_array[0], " " , temp_array[-1])
-	print("rain:",rain_array[0], " " , rain_array[-1])
-	
+	print("temp:",temp_array[0], " " ,acc1/temp_array.size()," " ,temp_array[-1])
+	print("rain:",rain_array[0], " " , acc2/rain_array.size(), " ",rain_array[-1])
+	####################
+	apply_airmass(air_mass)
+	redraw_climate_maps()
 func get_lowest_point(current_point, air_mass, directions): #Find lowest point from its neighbours. This creates the air mass flow
 	#Current point is divided by 4 so that we can get height informations from the tilemap, which has 4 pixel tiles
 	
@@ -239,7 +265,15 @@ func find_point(point,line):
 		if point == line.get_point_position(i):
 			return true
 	return false
+	
+
 func set_biome(height,rain,temperature):
+	var t_step = temperature_standard_deviation
+	var r_step = rain_standard_deviation
+	#var temperature_steps = [0 - 2*t_step,0 - t_step,0, 0 + t_step, 0+t_step*2]
+	#var rain_steps = [0 - 2*r_step,0 - r_step,0, 0 + r_step, 0+r_step*2]
+	var temperature_steps = [-0.5,-0.25,0,0.25, 0.5]
+	var rain_steps = [-0.5,-0.25,0,0.25, 0.5]
 	if(height < 0):
 		if height > -0.05:
 			return biomes.SHALLOW_WATER
@@ -248,58 +282,58 @@ func set_biome(height,rain,temperature):
 		else:
 			return biomes.DEEP_WATER
 	else:
-		if(temperature >= 1.0):
-			if rain >= 1.0:
+		if(temperature >= temperature_steps[4]):
+			if rain >= rain_steps[4]:
 				return biomes.RAIN_FOREST
-			elif rain >= 0.5:
+			elif rain >= rain_steps[3]:
 				return biomes.FLOODED_SAVANNA
-			elif rain >= 0:
+			elif rain >= rain_steps[2]:
 				return biomes.BROADLEAF_DRY
-			elif rain >= -0.5:
+			elif rain >= rain_steps[1]:
 				return biomes.CAATINGA
 			else:
 				return biomes.DESERT
-		elif(temperature >= 0.5):
-			if rain >= 1.0:
+		elif(temperature >= temperature_steps[3]):
+			if rain >= rain_steps[4]:
 				return biomes.SWAMP
-			elif rain >= 0.5:
+			elif rain >= rain_steps[3]:
 				return biomes.BROADLEAF
-			elif rain >= 0:
+			elif rain >= rain_steps[2]:
 				return biomes.PINE_TROPICAL
-			elif rain >= -0.5:
+			elif rain >= rain_steps[1]:
 				return biomes.SHRUBLAND
 			else:
 				return biomes.SAVANNA
-		elif(temperature >= 0):
-			if rain >= 1.0:
+		elif(temperature >= temperature_steps[2]):
+			if rain >= rain_steps[4]:
 				return biomes.MIXED_FOREST
-			elif rain >= 0.5:
+			elif rain >= rain_steps[3]:
 				return biomes.LAKES
-			elif rain >= 0:
+			elif rain >= rain_steps[2]:
 				return biomes.BEACH
-			elif rain >= -0.5:
+			elif rain >= rain_steps[1]:
 				return biomes.PLAINS
 			else:
 				return biomes.BADLAND
-		elif(temperature >= -0.5):
-			if rain >= 1.0:
+		elif(temperature >= temperature_steps[1]):
+			if rain >= rain_steps[4]:
 				return biomes.TAIGA
-			elif rain >= 0.5:
+			elif rain >= rain_steps[3]:
 				return biomes.MEADOW
-			elif rain >= 0:
+			elif rain >= rain_steps[2]:
 				return biomes.COLD_PLAINS
-			elif rain >= -0.5:
+			elif rain >= rain_steps[1]:
 				return biomes.ROCKS
 			else:
 				return biomes.FROZEN_SHRUBLAND
 		else:
-			if rain >= 1.0:
+			if rain >= rain_steps[4]:
 				return biomes.TUNDRA
-			elif rain >= 0.5:
+			elif rain >= rain_steps[3]:
 				return biomes.GROVE
-			elif rain >= 0:
+			elif rain >= rain_steps[2]:
 				return biomes.COLD_MEADOW
-			elif rain >= -0.5:
+			elif rain >= rain_steps[1]:
 				return biomes.FROZEN
 			else:
 				return biomes.COLD_DESERT
@@ -307,7 +341,7 @@ func set_biome(height,rain,temperature):
 func draw_biomes():
 	for x in range(0,size_x):
 		for y in range(0,size_y):
-			$biomeMap.set_cell(x-size_x,y-size_y,biome_parameters[Vector2(x,y)][2])
+			$biomeMap.set_cell(x,y,biome_parameters[Vector2(x,y)][2])
 func get_tile_color(perlin): #Tile color is chosen by its height, using its noise value
 	if perlin > 0.8:
 		return 5
@@ -406,8 +440,8 @@ func apply_airmass(airmass):
 	var start_point = airmass.get_point_position(0)/4
 	for i in range(0,airmass.get_point_count()): #Need a better solution. Im not sure if storing all points in a list and searching it is viable
 		var current_point = airmass.get_point_position(i)/4
-		for x in range(0,16):
-			for y in range(0,16):
+		for x in range(-16,16):
+			for y in range(-16,16):
 				#We look for the closest tiles in range 10 near our point
 				var new_point = current_point + Vector2(x,y)
 				if new_point.x >= 0 and new_point.y >= 0 and new_point.x < size_x and new_point.y < size_y: #boundary check
@@ -420,10 +454,11 @@ func apply_airmass(airmass):
 						var new_type = set_biome(height,new_rain,new_temperature) # replace
 						biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
 						point_dict[new_point] = 1
-	redraw_climate_maps()
+	
 	
 	
 func calculate_new_tile_parameters(current_value,modifier,distance): #damn hahaha, is there a better way to do this?
+	distance = abs(distance)
 	match distance:
 		0: return current_value + modifier * 0.8
 		1: return current_value + modifier * 0.75
@@ -451,7 +486,7 @@ func redraw_climate_maps(): #debug function, probably not needed after
 				
 				rain_tile = get_rain_color(biome_parameters[Vector2(x,y)][1])
 				temperature_tile = get_temperature_color(biome_parameters[Vector2(x,y)][0])
-				$TemperatureMap.set_cell(x+size_x,y,temperature_tile)
+				$TemperatureMap.set_cell(x-size_x,y-size_y,temperature_tile)
 				$rainMap.set_cell(x-size_x,y,rain_tile)
 				
 	draw_biomes()
@@ -472,6 +507,15 @@ func modify_rain(rain, height):
 	else:
 		return rain
 
+func standard_deviation(array: Array):
+	var average = 0
+	var deviation = 0
+	for value in array:
+		average += value
+	average /= array.size()
+	for value in array:
+		deviation += pow(value - average, 2)
+	return sqrt(deviation/array.size())
 func print_biome(value):
 	match value:
 		biomes.AVERAGE_WATER : return "Average ocean"

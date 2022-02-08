@@ -29,6 +29,8 @@ var speed : int = 0 # the speed will be used to enable air masses to go up
 var going_up : bool = false
 var empty_count = 0
 
+var game_name = ""
+var saves_updated = false
 
 enum biomes{
 	DESERT = 0,
@@ -67,8 +69,52 @@ enum biomes{
 class customSort:
 	static func sort_second(a,b):
 		return a[1] < b[1]
+		
+class StringHelper:
+	static func string_to_vector2(string := "") -> Vector2:
+		if string:
+			var new_string: String = string
+			new_string.erase(0, 1)
+			new_string.erase(new_string.length() - 1, 1)
+			var array: Array = new_string.split(", ")
 
+			return Vector2(array[0], array[1])
 
+		return Vector2.ZERO
+
+func save(savename):
+	var gameData = {
+		worldMap = biome_parameters,
+		airMasses = air_masses
+	}
+	var data = gameData
+	var saveGame = File.new()
+	saveGame.open("user://Saves/"+savename+".sve", File.WRITE)
+	saveGame.store_line(to_json(data))
+	saveGame.close()
+	
+
+func load_game(savename):
+	var loadGame = File.new()
+	print(savename)
+	if !loadGame.file_exists("user://Saves/"+savename+".sve"):
+		print ("File not found! Aborting...")
+		return -1
+	loadGame.open("user://Saves/"+savename+".sve", File.READ)
+
+	var file_text = loadGame.get_as_text()
+	var current_line = parse_json(file_text)
+	
+	var aux_dir = current_line["worldMap"]
+	for key in aux_dir.keys():
+		biome_parameters[StringHelper.string_to_vector2(key)] = aux_dir[key]
+	#biome_parameters = current_line["worldMap"]
+	aux_dir = current_line["airMasses"]
+	for key in aux_dir.keys():
+		air_masses[int(key)] = aux_dir[key]
+		
+	loadGame.close()
+		
 
 func _ready():
 	$GUI/BiomeInfo/VBoxContainer/height.set("custom_colors/font_color", Color(0,0,0))
@@ -76,6 +122,10 @@ func _ready():
 	$GUI/BiomeInfo/VBoxContainer/rain.set("custom_colors/font_color", Color(0,0,0))
 	$GUI/BiomeInfo/VBoxContainer/temp.set("custom_colors/font_color", Color(0,0,0))
 	$GUI/BiomeInfo/VBoxContainer/type.set("custom_colors/font_color", Color(0,0,0))
+	var dir = Directory.new()
+	if !dir.dir_exists("user://Saves"):
+		dir.open("user://")
+		dir.make_dir("user://Saves")
 	debug_generate()
 
 
@@ -342,6 +392,7 @@ func draw_biomes():
 	for x in range(0,size_x):
 		for y in range(0,size_y):
 			$biomeMap.set_cell(x,y,biome_parameters[Vector2(x,y)][2])
+
 func get_tile_color(perlin): #Tile color is chosen by its height, using its noise value
 	if perlin > 0.8:
 		return 5
@@ -517,6 +568,7 @@ func standard_deviation(array: Array):
 		deviation += pow(value - average, 2)
 	return sqrt(deviation/array.size())
 func print_biome(value):
+	value = int(value)
 	match value:
 		biomes.AVERAGE_WATER : return "Average ocean"
 		biomes.BADLAND : return "Badlands"
@@ -548,7 +600,17 @@ func print_biome(value):
 		biomes.TAIGA : return "Taiga"
 		biomes.TUNDRA : return "Tundra"
 
-
+func get_save_files():
+	var files = []
+	var dir = Directory.new()
+	dir.open("user://Saves")
+	dir.list_dir_begin(true)
+	
+	var file = dir.get_next()
+	while file != '':
+		files += [file]
+		file = dir.get_next()
+	return files
 func _input(event):
 	if event is InputEventMouseMotion:
 		mouse_map_information()
@@ -598,3 +660,38 @@ func _on_Hemisphere_item_selected(index):
 		hemisphere = false
 	elif index == 1:
 		hemisphere = true
+
+
+func _on_save_pressed():
+	var save_files = get_save_files()
+	if save_files.size() == 0:
+		save("world0")
+	else:
+		var savename = "world" + String(save_files.size())
+		save(savename)
+	pass # Replace with function body.
+
+
+func _on_load_pressed():
+	print(game_name)
+	var err = load_game(game_name)
+	if err == -1:
+		"Error opening save"
+	else:
+		redraw_climate_maps()
+	
+
+
+func _on_worlds_pressed():
+	if saves_updated == false:
+		var existing_games = get_save_files()
+		if existing_games.size() != 0:
+			for game in existing_games:
+				game = game.left(game.length()-4)
+				$GUI/saveLoad/VBoxContainer/HBoxContainer/worlds.add_item(game)
+		saves_updated = true
+
+
+func _on_worlds_item_selected(index):
+	game_name = $GUI/saveLoad/VBoxContainer/HBoxContainer/worlds.get_item_text(index)
+	pass # Replace with function body.

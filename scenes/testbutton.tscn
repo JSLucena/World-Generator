@@ -1,0 +1,30 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://scripts/testbutton.gd" type="Script" id=1]
+[ext_resource path="res://resources/images/test_button.png" type="Texture" id=2]
+
+[node name="testbutton" type="TextureButton"]
+margin_right = 64.0
+margin_bottom = 32.0
+rect_min_size = Vector2( 40, 32 )
+texture_normal = ExtResource( 2 )
+expand = true
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+margin_right = 32.0
+margin_bottom = 32.0
+rect_min_size = Vector2( 32, 32 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="text" type="RichTextLabel" parent="CenterContainer"]
+margin_left = 16.0
+margin_top = 16.0
+margin_right = 16.0
+margin_bottom = 16.0
+bbcode_enabled = true

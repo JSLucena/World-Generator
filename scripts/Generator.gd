@@ -117,6 +117,7 @@ func load_game(savename):
 		
 
 func _ready():
+	$buttonClick.play(0)
 	$GUI/BiomeInfo/VBoxContainer/height.set("custom_colors/font_color", Color(0,0,0))
 	$GUI/BiomeInfo/VBoxContainer/position.set("custom_colors/font_color", Color(0,0,0))
 	$GUI/BiomeInfo/VBoxContainer/rain.set("custom_colors/font_color", Color(0,0,0))

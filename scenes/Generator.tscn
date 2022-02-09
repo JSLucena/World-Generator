@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://scripts/Generator.gd" type="Script" id=1]
 [ext_resource path="res://resources/tileset/tileset.tres" type="TileSet" id=2]
@@ -7,6 +7,7 @@
 [ext_resource path="res://resources/tileset/tileset.png" type="Texture" id=5]
 [ext_resource path="res://scripts/Hemisphere.gd" type="Script" id=6]
 [ext_resource path="res://resources/tileset/biomes.tres" type="TileSet" id=7]
+[ext_resource path="res://resources/SFX/buttonPress.wav" type="AudioStream" id=8]
 
 [node name="Generator" type="Node2D"]
 script = ExtResource( 1 )
@@ -313,6 +314,9 @@ default_color = Color( 0.992157, 0.992157, 0.992157, 1 )
 tile_set = ExtResource( 7 )
 cell_size = Vector2( 8, 8 )
 format = 1
+
+[node name="buttonClick" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 8 )
 
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/small" to="." method="_on_small_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/PanelContainer/VBoxContainer/mapsize/medium" to="." method="_on_medium_pressed"]

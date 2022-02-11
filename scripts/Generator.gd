@@ -31,6 +31,7 @@ var empty_count = 0
 
 var game_name = ""
 var saves_updated = false
+var generated = false
 
 enum biomes{
 	DESERT = 0,
@@ -63,7 +64,11 @@ enum biomes{
 	SHALLOW_WATER = 27,
 	INLAND_WATER = 28
 }
-
+enum sizes{
+	SMALL = 1
+	MEDIUM = 2
+	LARGE = 3
+}
 
 
 class customSort:
@@ -118,16 +123,12 @@ func load_game(savename):
 
 func _ready():
 	$buttonClick.play(0)
-	$GUI/BiomeInfo/VBoxContainer/height.set("custom_colors/font_color", Color(0,0,0))
-	$GUI/BiomeInfo/VBoxContainer/position.set("custom_colors/font_color", Color(0,0,0))
-	$GUI/BiomeInfo/VBoxContainer/rain.set("custom_colors/font_color", Color(0,0,0))
-	$GUI/BiomeInfo/VBoxContainer/temp.set("custom_colors/font_color", Color(0,0,0))
-	$GUI/BiomeInfo/VBoxContainer/type.set("custom_colors/font_color", Color(0,0,0))
+	
 	var dir = Directory.new()
 	if !dir.dir_exists("user://Saves"):
 		dir.open("user://")
 		dir.make_dir("user://Saves")
-	debug_generate()
+	#debug_generate()
 
 
 
@@ -158,6 +159,58 @@ func game_generate():
 	rain_noise.period = period*1.25
 	rain_noise.persistence = persistence/2
 	rain_noise.lacunarity = lacunarity-0.5
+	
+	#First map generation
+	for x in range(0,size_x):
+		for y in range(0,size_y):
+				var height = noise.get_noise_2d(x,y) * height_modifier
+				var adjusted_temperature = modify_temperature(temperature_noise.get_noise_2d(x,y), height,y)
+				var adjusted_rain = modify_rain(rain_noise.get_noise_2d(x,y),height)
+				var biome = set_biome(height,adjusted_rain,adjusted_temperature)
+				biome_parameters[Vector2(x,y)] = [adjusted_temperature,adjusted_rain,biome,height]
+	
+	#generate 10 air masses
+	for i in range(0,10):
+		game_generate_air_mass()
+	#draw biome map
+	draw_biomes()
+	generated = true
+func game_generate_air_mass():
+	randomize()
+	
+	var start_quadrant = generate_quadrant() # start and end quadrants used to calculate the trajectory the wind may travel
+	var end_quadrant = generate_quadrant() 
+	var start_point = generate_quadrant_point(start_quadrant)
+	var directions = get_air_direction(start_quadrant,end_quadrant)
+	
+	
+	
+	
+	# Individual air mass configuration
+	var air_mass = Line2D.new()
+	var temp_point : Vector2 = Vector2(0,0)
+	air_mass.add_point(start_point*4)
+	air_mass.set_begin_cap_mode(1) #square
+	air_mass.set_end_cap_mode(2) #round
+	air_mass.set_default_color(Color( 1,1, 1, 1 ))
+	air_mass.set_width(4.0)
+	air_mass.set_position(Vector2(0,0))
+	air_mass.set_visible(true)
+	var points = []
+	speed = size_x/2 + randi() % size_x #Speed is the max amount of points each air mass may have. Could the variable be named distance? Yes, but Im lazy so....
+	going_up = true
+	empty_count = 0
+	while(temp_point != Vector2(-1,-1)): #While there are still valid options to travel to
+		
+		temp_point = get_lowest_point(air_mass.get_point_position(air_mass.get_point_count()-1),air_mass, directions) #Is this better, IDK
+		if temp_point == Vector2(-1,-1):
+			break
+		air_mass.add_point(temp_point)
+		points.append(temp_point)
+	air_masses[air_mass_count] = [temp_point, biome_parameters[start_point][0],biome_parameters[start_point][1]] #This may be used later so I'll store it
+	apply_airmass(air_mass)
+	air_mass.queue_free()
+	#redraw_climate_maps()
 
 func debug_generate():
 	$TileMap.clear()
@@ -205,12 +258,12 @@ func debug_generate():
 
 func mouse_map_information():
 	var mousePosition = $biomeMap.world_to_map(get_global_mouse_position())
-	if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
-		$GUI/BiomeInfo/VBoxContainer/height.set_text("average height : " + String(biome_parameters[mousePosition][3]) )
-		$GUI/BiomeInfo/VBoxContainer/position.set_text(String(mousePosition) )
-		$GUI/BiomeInfo/VBoxContainer/type.set_text(print_biome(biome_parameters[mousePosition][2]))
-		$GUI/BiomeInfo/VBoxContainer/temp.set_text("temperature : " + String(biome_parameters[mousePosition][0]) )
-		$GUI/BiomeInfo/VBoxContainer/rain.set_text("rain : " + String(biome_parameters[mousePosition][1]) )
+	if generated == true:
+		if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
+			var biome = print_biome(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
+			var color = biome_color_code(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
+			var bbcode = "[center][color=" + color + "]" + biome + "," + "(" + String(mousePosition.x) +"," + String(mousePosition.y)+")"+ "[/color][/center]"
+			$tileInformation/Control/MarginContainer/VBoxContainer/biomeXY.bbcode_text = bbcode
 
 
 
@@ -245,7 +298,7 @@ func get_air_direction(start,end):
 	}
 	return direction_dictionary[Vector2(start,end)]
 	
-func generate_air_mass():
+func debug_generate_air_mass():
 	randomize()
 	
 	var start_quadrant = generate_quadrant() # start and end quadrants used to calculate the trajectory the wind may travel
@@ -295,8 +348,7 @@ func generate_air_mass():
 		rain_array.append(biome_parameters[key][1])
 		acc2 = biome_parameters[key][1]
 		
-	rain_standard_deviation = standard_deviation(rain_array)
-	temperature_standard_deviation = standard_deviation(temp_array)
+
 	
 	
 	
@@ -579,15 +631,6 @@ func modify_rain(rain, height):
 	else:
 		return rain
 
-func standard_deviation(array: Array):
-	var average = 0
-	var deviation = 0
-	for value in array:
-		average += value
-	average /= array.size()
-	for value in array:
-		deviation += pow(value - average, 2)
-	return sqrt(deviation/array.size())
 func print_biome(value):
 	value = int(value)
 	match value:
@@ -621,6 +664,38 @@ func print_biome(value):
 		biomes.TAIGA : return "Taiga"
 		biomes.TUNDRA : return "Tundra"
 
+func biome_color_code(value):
+	match value:
+		biomes.AVERAGE_WATER : return "teal"
+		biomes.BADLAND : return "#ff7200"
+		biomes.BEACH : return "#ffff99"
+		biomes.BROADLEAF : return "#198c19"
+		biomes.BROADLEAF_DRY : return "#578c19"
+		biomes.CAATINGA : return "#cca667"
+		biomes.COLD_DESERT : return "#d0e0e3"
+		biomes.COLD_MEADOW : return "#a5d5dc" 
+		biomes.COLD_PLAINS : return "#a4ffdf"
+		biomes.DEEP_WATER : return "navy"
+		biomes.DESERT : return "yellow"
+		biomes.FLOODED_SAVANNA : return "#b5f575"
+		biomes.FROZEN : return "#9fc5e8"
+		biomes.FROZEN_SHRUBLAND : return "#aecad2"
+		biomes.GROVE : return "#d9ead3"
+		biomes.INLAND_WATER : return "#0688d1"
+		biomes.LAKES : return "#0688d1"
+		biomes.MEADOW : return "#90cdc3"
+		biomes.MIXED_FOREST : return "green"
+		biomes.PINE_TROPICAL : return "#327a32"
+		biomes.PLAINS : return "lime"
+		biomes.RAIN_FOREST : return "#005900"
+		biomes.ROCKS : return "#999999"
+		biomes.SAVANNA : return "#d8f08b"
+		biomes.SHALLOW_WATER : return "aqua"
+		biomes.SHRUBLAND : return "#e79616"
+		biomes.SWAMP : return "#78975e"
+		biomes.TAIGA : return "#a1e2c0"
+		biomes.TUNDRA : return "white"
+		
 func get_save_files():
 	var files = []
 	var dir = Directory.new()
@@ -639,20 +714,7 @@ func _input(event):
 
 
 
-func _on_generate_pressed():
-	debug_generate()
 
-func _on_lacunarity_box_value_changed(value):
-	lacunarity = value
-
-func _on_generateAirMass_pressed():
-	generate_air_mass()
-
-func _on_Hemisphere_item_selected(index):
-	if index == 0:
-		hemisphere = false
-	elif index == 1:
-		hemisphere = true
 
 func _on_save_pressed():
 	var save_files = get_save_files()
@@ -687,6 +749,10 @@ func _on_worlds_item_selected(index):
 	game_name = $GUI/saveLoad/VBoxContainer/HBoxContainer/worlds.get_item_text(index)
 	pass # Replace with function body.
 
+
+#########################################USER INTERFACE SIGNALS##########################
+func _on_generate_pressed():
+	game_generate()
 
 func _on_Small_toggled(button_pressed):
 	$buttonToggle.play()
@@ -747,7 +813,12 @@ func _on_Smooth_toggled(button_pressed):
 func _on_Archipelago_toggled(button_pressed):
 	$buttonToggle.play()
 	if button_pressed == true:
-		period = 25
+		if size_x == 128:
+			period = 25
+		elif size_x == 256:
+			period = 50
+		else:
+			period = 150
 		lacunarity = 2.2
 		$HUD/UI/buttons/VBoxContainer/landButtons/Continental.pressed = false
 
@@ -756,7 +827,12 @@ func _on_Archipelago_toggled(button_pressed):
 func _on_Continental_toggled(button_pressed):
 	$buttonToggle.play()
 	if button_pressed == true:
-		period = 50
+		if size_x == 128:
+			period = 50
+		elif size_x == 256:
+			period = 100
+		else:
+			period = 300
 		lacunarity = 2
 		$HUD/UI/buttons/VBoxContainer/landButtons/Archipelago.pressed = false
 

@@ -17,7 +17,7 @@ var rain_tile : int = 0
 var temperature_tile : int = 0
 export var height_modifier = 1.0 # Variable to increase/decrease peak and valley height
 var biome_parameters = {} #Key is position on tilegrid, values are (temperature,rain,type,avg_height)
-export var hemisphere : bool = false # false = south , true = north
+export var hemisphere : bool = true # false = south , true = north
 var rain_standard_deviation : float = 0
 var temperature_standard_deviation : float = 0
 
@@ -137,7 +137,27 @@ func _ready():
 	#pass
 	
 
-
+func game_generate():
+	$biomeMap.clear()
+	randomize()
+	noise_seed = randi()
+	noise.seed = noise_seed
+	noise.octaves = octaves
+	noise.period = period
+	noise.persistence = persistence
+	noise.lacunarity = lacunarity
+	
+	temperature_noise.seed = randi()
+	temperature_noise.octaves = octaves
+	temperature_noise.period = period
+	temperature_noise.persistence = persistence/2
+	temperature_noise.lacunarity = lacunarity
+	
+	rain_noise.seed = randi()
+	rain_noise.octaves = octaves/2
+	rain_noise.period = period*1.25
+	rain_noise.persistence = persistence/2
+	rain_noise.lacunarity = lacunarity-0.5
 
 func debug_generate():
 	$TileMap.clear()
@@ -616,52 +636,23 @@ func _input(event):
 	if event is InputEventMouseMotion:
 		mouse_map_information()
 
-func _on_small_pressed():
-	size_x = 128
-	size_y = 128
-func _on_medium_pressed():
-	size_x = 256
-	size_y = 256
-func _on_large_pressed():
-	size_x = 512
-	size_y = 512
 
-func _on_persistence_value_value_changed(value):
-	persistence = value
-	$GUI/MarginContainer/PanelContainer/VBoxContainer/persistence/persistence.set_text("Persistence : " +  String(value))
-func _on_octave_slider_value_changed(value):
-	octaves = value
-	$GUI/MarginContainer/PanelContainer/VBoxContainer/octaves/octave.set_text("Octaves : " +  String(value))
-func _on_periodSpin_value_changed(value):
-	period = value
-func _on_seed_box_value_changed(value):
-	noise_seed = value
+
 
 func _on_generate_pressed():
 	debug_generate()
 
-func _on_flatter_pressed():
-	height_modifier = 0.8
-func _on_normal_pressed():
-	height_modifier = 1.0
-func _on_peaks_pressed():
-	height_modifier = 1.2
-
-
 func _on_lacunarity_box_value_changed(value):
 	lacunarity = value
 
-
 func _on_generateAirMass_pressed():
 	generate_air_mass()
-
 
 func _on_Hemisphere_item_selected(index):
 	if index == 0:
 		hemisphere = false
 	elif index == 1:
 		hemisphere = true
-
 
 func _on_save_pressed():
 	var save_files = get_save_files()
@@ -682,7 +673,6 @@ func _on_load_pressed():
 		redraw_climate_maps()
 	
 
-
 func _on_worlds_pressed():
 	if saves_updated == false:
 		var existing_games = get_save_files()
@@ -696,3 +686,98 @@ func _on_worlds_pressed():
 func _on_worlds_item_selected(index):
 	game_name = $GUI/saveLoad/VBoxContainer/HBoxContainer/worlds.get_item_text(index)
 	pass # Replace with function body.
+
+
+func _on_Small_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		size_x = 128
+		size_y = 128
+		$HUD/UI/buttons/VBoxContainer/SizeButtons/Medium.pressed = false
+		$HUD/UI/buttons/VBoxContainer/SizeButtons/Large.pressed = false
+
+
+func _on_Medium_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		size_x = 256
+		size_y = 256
+		$HUD/UI/buttons/VBoxContainer/SizeButtons/Small.pressed = false
+		$HUD/UI/buttons/VBoxContainer/SizeButtons/Large.pressed = false
+
+
+func _on_Large_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		size_x = 512
+		size_y = 512
+		$HUD/UI/buttons/VBoxContainer/SizeButtons/Medium.pressed = false
+		$HUD/UI/buttons/VBoxContainer/SizeButtons/Small.pressed = false
+
+
+func _on_Jagged_toggled(button_pressed):
+	
+	$buttonToggle.play()
+	if button_pressed == true:
+		persistence = 0.75
+		octaves = 8
+		$HUD/UI/buttons/VBoxContainer/coastButtons/Normal.pressed = false
+		$HUD/UI/buttons/VBoxContainer/coastButtons/Smooth.pressed = false
+
+
+
+func _on_Normal_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		persistence = 0.7
+		octaves = 6
+		$HUD/UI/buttons/VBoxContainer/coastButtons/Jagged.pressed = false
+		$HUD/UI/buttons/VBoxContainer/coastButtons/Smooth.pressed = false
+
+
+func _on_Smooth_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		persistence = 0.6
+		octaves = 5
+		$HUD/UI/buttons/VBoxContainer/coastButtons/Normal.pressed = false
+		$HUD/UI/buttons/VBoxContainer/coastButtons/Jagged.pressed = false
+
+
+func _on_Archipelago_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		period = 25
+		lacunarity = 2.2
+		$HUD/UI/buttons/VBoxContainer/landButtons/Continental.pressed = false
+
+
+
+func _on_Continental_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		period = 50
+		lacunarity = 2
+		$HUD/UI/buttons/VBoxContainer/landButtons/Archipelago.pressed = false
+
+
+func _on_Flatter_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		height_modifier = 0.8
+		$HUD/UI/buttons/VBoxContainer/heightButtons/Average.pressed = false
+		$HUD/UI/buttons/VBoxContainer/heightButtons/Peaks.pressed = false
+
+func _on_Average_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		height_modifier = 1
+		$HUD/UI/buttons/VBoxContainer/heightButtons/Flatter.pressed = false
+		$HUD/UI/buttons/VBoxContainer/heightButtons/Peaks.pressed = false
+
+func _on_Peaks_toggled(button_pressed):
+	$buttonToggle.play()
+	if button_pressed == true:
+		height_modifier = 1.3
+		$HUD/UI/buttons/VBoxContainer/heightButtons/Average.pressed = false
+		$HUD/UI/buttons/VBoxContainer/heightButtons/Flatter.pressed = false

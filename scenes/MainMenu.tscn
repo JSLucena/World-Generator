@@ -14,8 +14,8 @@ modulate = Color( 1, 1, 1, 0.317647 )
 self_modulate = Color( 0.27451, 0.258824, 0.258824, 1 )
 margin_left = 2.0
 margin_top = -1.0
-margin_right = 1026.0
-margin_bottom = 603.0
+margin_right = 1282.0
+margin_bottom = 719.0
 texture = ExtResource( 1 )
 expand = true
 stretch_mode = 2
@@ -24,10 +24,10 @@ __meta__ = {
 }
 
 [node name="title" type="RichTextLabel" parent="."]
-margin_left = 247.0
+margin_left = 280.0
 margin_top = 79.0
-margin_right = 792.0
-margin_bottom = 189.0
+margin_right = 1023.0
+margin_bottom = 203.0
 custom_fonts/normal_font = ExtResource( 2 )
 bbcode_enabled = true
 bbcode_text = "[center]Joca's World Generator[/center]"
@@ -37,43 +37,43 @@ __meta__ = {
 }
 
 [node name="buttonholder" type="MarginContainer" parent="."]
-margin_left = 307.0
-margin_top = 228.0
-margin_right = 714.0
-margin_bottom = 600.0
+margin_left = 324.0
+margin_top = 306.0
+margin_right = 967.0
+margin_bottom = 705.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="VBoxContainer" type="VBoxContainer" parent="buttonholder"]
-margin_right = 407.0
-margin_bottom = 372.0
+margin_right = 643.0
+margin_bottom = 399.0
 
 [node name="newGame" type="Button" parent="buttonholder/VBoxContainer"]
-margin_right = 407.0
-margin_bottom = 32.0
-rect_min_size = Vector2( 0, 32 )
+margin_right = 643.0
+margin_bottom = 48.0
+rect_min_size = Vector2( 0, 48 )
 theme = ExtResource( 3 )
 text = "New Game"
 
 [node name="loadGame" type="Button" parent="buttonholder/VBoxContainer"]
-margin_top = 36.0
-margin_right = 407.0
-margin_bottom = 68.0
-rect_min_size = Vector2( 0, 32 )
+margin_top = 52.0
+margin_right = 643.0
+margin_bottom = 100.0
+rect_min_size = Vector2( 0, 48 )
 theme = ExtResource( 3 )
 text = "Load Game"
 
 [node name="exit" type="Button" parent="buttonholder/VBoxContainer"]
-margin_top = 72.0
-margin_right = 407.0
-margin_bottom = 104.0
-rect_min_size = Vector2( 0, 32 )
+margin_top = 104.0
+margin_right = 643.0
+margin_bottom = 152.0
+rect_min_size = Vector2( 0, 48 )
 theme = ExtResource( 3 )
 text = "Quit Game"
 
 [node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2( 510, 302 )
+position = Vector2( 639, 361 )
 current = true
 
 [node name="buttonClick" type="AudioStreamPlayer" parent="."]

@@ -19,8 +19,7 @@ var temperature_tile : int = 0
 export var height_modifier = 1.0 # Variable to increase/decrease peak and valley height
 var biome_parameters = {} #Key is position on tilegrid, values are (temperature,rain,type,avg_height)
 export var hemisphere : bool = true # false = south , true = north
-var rain_standard_deviation : float = 0
-var temperature_standard_deviation : float = 0
+
 
 
 
@@ -33,6 +32,7 @@ var empty_count = 0
 var game_name = ""
 var saves_updated = false
 var generated = false
+var size_changed = false
 
 enum biomes{
 	DESERT = 0,
@@ -91,7 +91,7 @@ class StringHelper:
 func save(savename):
 	var gameData = {
 		worldMap = biome_parameters,
-		airMasses = air_masses
+		worldSize = size
 	}
 	var data = gameData
 	var saveGame = File.new()
@@ -100,13 +100,13 @@ func save(savename):
 	saveGame.close()
 	
 
-func load_game(savename):
+func load_game(name):
 	var loadGame = File.new()
-	print(savename)
-	if !loadGame.file_exists("user://Saves/"+savename+".sve"):
+	print(name)
+	if !loadGame.file_exists("user://Saves/"+name):
 		print ("File not found! Aborting...")
 		return -1
-	loadGame.open("user://Saves/"+savename+".sve", File.READ)
+	loadGame.open("user://Saves/"+name, File.READ)
 
 	var file_text = loadGame.get_as_text()
 	var current_line = parse_json(file_text)
@@ -114,21 +114,31 @@ func load_game(savename):
 	var aux_dir = current_line["worldMap"]
 	for key in aux_dir.keys():
 		biome_parameters[StringHelper.string_to_vector2(key)] = aux_dir[key]
-	#biome_parameters = current_line["worldMap"]
-	aux_dir = current_line["airMasses"]
-	for key in aux_dir.keys():
-		air_masses[int(key)] = aux_dir[key]
+	size = current_line["worldSize"]
 		
 	loadGame.close()
 		
 
 func _ready():
-	$buttonClick.play(0)
+	AudioManager.get_node("buttonClick").play()
+	AudioManager.get_node("generationMusic").play()
+	
+	if GlobalVariables.load_game == true:
+		load_game(GlobalVariables.load_name)
+		GlobalVariables.load_game = false
 	
 	var dir = Directory.new()
 	if !dir.dir_exists("user://Saves"):
 		dir.open("user://")
 		dir.make_dir("user://Saves")
+	
+	var save_files = GlobalVariables.get_save_files()
+	if save_files.size() == 0:
+		game_name = "world0"
+	else:
+		game_name = "world" + String(save_files.size())
+		
+	$HUD/UI/otherButtons/VBoxContainer/worldName.text = game_name
 	#debug_generate()
 
 
@@ -261,19 +271,20 @@ func mouse_map_information():
 	var mousePosition = $biomeMap.world_to_map(get_global_mouse_position())
 	var value
 	if generated == true:
-		if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
-			var biome = print_biome(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
-			var color = biome_color_code(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
-			var bbcode = "[center][color=" + color + "]" + biome + "," + "(" + String(mousePosition.x) +"," + String(mousePosition.y)+")"+ "[/color][/center]"
-			$tileInformation/Control/MarginContainer/VBoxContainer/biomeXY.bbcode_text = bbcode
-			value = temperature_print_decoder(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][0])
-			bbcode = "[center]Temperature: [color=" + value[1] + "]" + value[0] + "[/color][/center]"
-			$tileInformation/Control/MarginContainer/VBoxContainer/temperature.bbcode_text = bbcode
-			value = humidity_print_decoder(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][1])
-			bbcode = "[center]Humidity: [color=" + value[1] + "]" + value[0] + "[/color][/center]"
-			$tileInformation/Control/MarginContainer/VBoxContainer/humidity.bbcode_text = bbcode
-			bbcode = "[center][color=white]Avg. height: " + String(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][3]) + "[/color][/center]"
-			$tileInformation/Control/MarginContainer/VBoxContainer/height.bbcode_text = bbcode
+		if size_changed == false:
+			if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
+				var biome = print_biome(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
+				var color = biome_color_code(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
+				var bbcode = "[center][color=" + color + "]" + biome + "," + "(" + String(mousePosition.x) +"," + String(mousePosition.y)+")"+ "[/color][/center]"
+				$tileInformation/Control/MarginContainer/VBoxContainer/biomeXY.bbcode_text = bbcode
+				value = temperature_print_decoder(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][0])
+				bbcode = "[center]Temperature: [color=" + value[1] + "]" + value[0] + "[/color][/center]"
+				$tileInformation/Control/MarginContainer/VBoxContainer/temperature.bbcode_text = bbcode
+				value = humidity_print_decoder(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][1])
+				bbcode = "[center]Humidity: [color=" + value[1] + "]" + value[0] + "[/color][/center]"
+				$tileInformation/Control/MarginContainer/VBoxContainer/humidity.bbcode_text = bbcode
+				bbcode = "[center][color=white]Avg. height: " + String(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][3]) + "[/color][/center]"
+				$tileInformation/Control/MarginContainer/VBoxContainer/height.bbcode_text = bbcode
 
 
 func generate_quadrant():
@@ -400,10 +411,6 @@ func find_point(point,line):
 	
 
 func set_biome(height,rain,temperature):
-	var t_step = temperature_standard_deviation
-	var r_step = rain_standard_deviation
-	#var temperature_steps = [0 - 2*t_step,0 - t_step,0, 0 + t_step, 0+t_step*2]
-	#var rain_steps = [0 - 2*r_step,0 - r_step,0, 0 + r_step, 0+r_step*2]
 	var temperature_steps = [-0.5,-0.25,0,0.25, 0.5]
 	var rain_steps = [-0.5,-0.25,0,0.25, 0.5]
 	if(height < 0):
@@ -724,17 +731,6 @@ func biome_color_code(value):
 		biomes.TAIGA : return "#a1e2c0"
 		biomes.TUNDRA : return "white"
 
-func get_save_files():
-	var files = []
-	var dir = Directory.new()
-	dir.open("user://Saves")
-	dir.list_dir_begin(true)
-	
-	var file = dir.get_next()
-	while file != '':
-		files += [file]
-		file = dir.get_next()
-	return files
 
 
 
@@ -742,14 +738,8 @@ func get_save_files():
 
 
 
-func _on_save_pressed():
-	var save_files = get_save_files()
-	if save_files.size() == 0:
-		save("world0")
-	else:
-		var savename = "world" + String(save_files.size())
-		save(savename)
-	pass # Replace with function body.
+
+
 
 
 func _on_load_pressed():
@@ -763,7 +753,7 @@ func _on_load_pressed():
 
 func _on_worlds_pressed():
 	if saves_updated == false:
-		var existing_games = get_save_files()
+		var existing_games = GlobalVariables.get_save_files()
 		if existing_games.size() != 0:
 			for game in existing_games:
 				game = game.left(game.length()-4)
@@ -782,7 +772,12 @@ func _input(event):
 	if event is InputEventMouseMotion:
 		mouse_map_information()
 #########################################USER INTERFACE SIGNALS##########################
+func _on_save_pressed():
+		var savename = game_name
+		save(savename)
+
 func _on_generate_pressed():
+	AudioManager.get_node("buttonClick").play()
 	if size == sizes.SMALL:
 		$screen.zoom = Vector2(1.5,1.5)
 	elif size == sizes.MEDIUM:
@@ -793,50 +788,55 @@ func _on_generate_pressed():
 	
 	$tileInformation/Control.visible = true
 	game_generate()
+	size_changed = false
 
 func _on_Small_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		size_x = 128
 		size_y = 128
 		size = sizes.SMALL
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Medium.pressed = false
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Large.pressed = false
+		size_changed = true
 
 
 func _on_Medium_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		size_x = 256
 		size_y = 256
 		size = sizes.MEDIUM
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Small.pressed = false
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Large.pressed = false
+		size_changed = true
 
 
 func _on_Large_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		size_x = 512
 		size_y = 512
 		size = sizes.LARGE
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Medium.pressed = false
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Small.pressed = false
+		size_changed = true
 
 
 func _on_Jagged_toggled(button_pressed):
 	
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		persistence = 0.75
 		octaves = 8
 		$HUD/UI/buttons/VBoxContainer/coastButtons/Normal.pressed = false
 		$HUD/UI/buttons/VBoxContainer/coastButtons/Smooth.pressed = false
+		
 
 
 
 func _on_Normal_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		persistence = 0.7
 		octaves = 6
@@ -845,7 +845,7 @@ func _on_Normal_toggled(button_pressed):
 
 
 func _on_Smooth_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		persistence = 0.6
 		octaves = 5
@@ -854,7 +854,7 @@ func _on_Smooth_toggled(button_pressed):
 
 
 func _on_Archipelago_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		if size_x == 128:
 			period = 25
@@ -868,7 +868,7 @@ func _on_Archipelago_toggled(button_pressed):
 
 
 func _on_Continental_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		if size_x == 128:
 			period = 50
@@ -881,22 +881,26 @@ func _on_Continental_toggled(button_pressed):
 
 
 func _on_Flatter_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		height_modifier = 0.8
 		$HUD/UI/buttons/VBoxContainer/heightButtons/Average.pressed = false
 		$HUD/UI/buttons/VBoxContainer/heightButtons/Peaks.pressed = false
 
 func _on_Average_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		height_modifier = 1
 		$HUD/UI/buttons/VBoxContainer/heightButtons/Flatter.pressed = false
 		$HUD/UI/buttons/VBoxContainer/heightButtons/Peaks.pressed = false
 
 func _on_Peaks_toggled(button_pressed):
-	$buttonToggle.play()
+	AudioManager.get_node("buttonToggle").play()
 	if button_pressed == true:
 		height_modifier = 1.3
 		$HUD/UI/buttons/VBoxContainer/heightButtons/Average.pressed = false
 		$HUD/UI/buttons/VBoxContainer/heightButtons/Flatter.pressed = false
+
+
+func _on_worldName_text_changed(new_text):
+	game_name = new_text

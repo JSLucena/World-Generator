@@ -1,0 +1,72 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://resources/fonts/title_font.tres" type="DynamicFont" id=1]
+[ext_resource path="res://resources/themes/gui_theme.tres" type="Theme" id=2]
+[ext_resource path="res://scripts/LoadUI.gd" type="Script" id=3]
+
+[node name="LoadUI" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_right = -355.0
+margin_bottom = -656.0
+theme = ExtResource( 2 )
+script = ExtResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+margin_right = 14.0
+margin_bottom = 14.0
+rect_min_size = Vector2( 0, 48 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+visible = false
+margin_left = 7.0
+margin_top = 7.0
+margin_right = 927.0
+margin_bottom = 55.0
+rect_min_size = Vector2( 0, 48 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+margin_right = 920.0
+margin_bottom = 48.0
+
+[node name="name" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+margin_right = 480.0
+margin_bottom = 48.0
+rect_min_size = Vector2( 0, 32 )
+custom_fonts/font = ExtResource( 1 )
+text = "World name"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="spaces" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+margin_left = 824.0
+margin_top = 12.0
+margin_right = 920.0
+margin_bottom = 36.0
+text = "    "
+
+[node name="size" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+margin_left = 484.0
+margin_right = 820.0
+margin_bottom = 48.0
+rect_min_size = Vector2( 0, 32 )
+custom_fonts/font = ExtResource( 1 )
+text = "100x100"
+
+[node name="load" type="Button" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+margin_left = 824.0
+margin_right = 920.0
+margin_bottom = 48.0
+text = "Load"
+
+[connection signal="pressed" from="PanelContainer/VBoxContainer/HBoxContainer/load" to="." method="_on_load_pressed"]

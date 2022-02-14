@@ -3,6 +3,7 @@ extends Node2D
 
 export var size_x : int = 256 #Map size
 export var size_y : int = 256 #Map size
+export var size : int = sizes.MEDIUM
 export var noise_seed : int = 1
 export var octaves  : int = 7
 export var period : float = 100.0
@@ -258,13 +259,21 @@ func debug_generate():
 
 func mouse_map_information():
 	var mousePosition = $biomeMap.world_to_map(get_global_mouse_position())
+	var value
 	if generated == true:
 		if(mousePosition.x >= 0 and mousePosition.x < size_x and mousePosition.y >= 0 and mousePosition.y < size_y):
 			var biome = print_biome(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
 			var color = biome_color_code(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][2])
 			var bbcode = "[center][color=" + color + "]" + biome + "," + "(" + String(mousePosition.x) +"," + String(mousePosition.y)+")"+ "[/color][/center]"
 			$tileInformation/Control/MarginContainer/VBoxContainer/biomeXY.bbcode_text = bbcode
-
+			value = temperature_print_decoder(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][0])
+			bbcode = "[center]Temperature: [color=" + value[1] + "]" + value[0] + "[/color][/center]"
+			$tileInformation/Control/MarginContainer/VBoxContainer/temperature.bbcode_text = bbcode
+			value = humidity_print_decoder(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][1])
+			bbcode = "[center]Humidity: [color=" + value[1] + "]" + value[0] + "[/color][/center]"
+			$tileInformation/Control/MarginContainer/VBoxContainer/humidity.bbcode_text = bbcode
+			bbcode = "[center][color=white]Avg. height: " + String(biome_parameters[Vector2(mousePosition.x,mousePosition.y)][3]) + "[/color][/center]"
+			$tileInformation/Control/MarginContainer/VBoxContainer/height.bbcode_text = bbcode
 
 
 func generate_quadrant():
@@ -466,6 +475,77 @@ func draw_biomes():
 		for y in range(0,size_y):
 			$biomeMap.set_cell(x,y,biome_parameters[Vector2(x,y)][2])
 
+func apply_airmass(airmass):
+	var point_dict = {}
+	var start_point = airmass.get_point_position(0)/4
+	for i in range(0,airmass.get_point_count()): #Need a better solution. Im not sure if storing all points in a list and searching it is viable
+		var current_point = airmass.get_point_position(i)/4
+		for x in range(-16,16):
+			for y in range(-16,16):
+				#We look for the closest tiles in range 10 near our point
+				var new_point = current_point + Vector2(x,y)
+				if new_point.x >= 0 and new_point.y >= 0 and new_point.x < size_x and new_point.y < size_y: #boundary check
+					if !(point_dict.has(new_point)):
+						var old_temperature = biome_parameters[new_point][0]
+						var old_rain = biome_parameters[new_point][1]
+						var height = biome_parameters[new_point][3]
+						var new_temperature = calculate_new_tile_parameters(old_temperature,biome_parameters[start_point][0],max(x,y))
+						var new_rain = calculate_new_tile_parameters(old_rain,biome_parameters[start_point][1],max(x,y))
+						var new_type = set_biome(height,new_rain,new_temperature) # replace
+						biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
+						point_dict[new_point] = 1
+
+func redraw_climate_maps(): #debug function, probably not needed after
+	for x in range(0,size_x):
+		for y in range(0,size_y):
+				
+				rain_tile = get_rain_color(biome_parameters[Vector2(x,y)][1])
+				temperature_tile = get_temperature_color(biome_parameters[Vector2(x,y)][0])
+				$TemperatureMap.set_cell(x-size_x,y-size_y,temperature_tile)
+				$rainMap.set_cell(x-size_x,y,rain_tile)
+				
+	draw_biomes()
+func modify_temperature(temperature, height,y):
+	
+	var exponent : float
+	if hemisphere == true:
+		exponent = float(y)/size_y
+	else:
+		exponent = float(-y)/size_y
+	if height > 0:
+		return temperature + exponent/8 - abs(pow(height,1))
+	else:
+		 return temperature + exponent/8
+func modify_rain(rain, height):
+	if height < 0:
+		return rain + 0.25
+	else:
+		return rain
+
+###################DECODER FUNCTIONS##################################
+func humidity_print_decoder(value):
+	if value > 0.5:
+		return ["Very wet","blue"]
+	elif value > 0.25:
+		return ["Wet","aqua"]
+	elif value > 0:
+		return ["Average","green"]
+	elif value > -0.25:
+		return ["Dry","yelow"]
+	else:
+		return ["Very dry","red"]
+func temperature_print_decoder(value):
+	if value > 0.5:
+		return ["Hot","red"]
+	elif value > 0.25:
+		return ["Warm","yellow"]
+	elif value > 0:
+		return ["Mild","green"]
+	elif value > -0.25:
+		return ["Chill","aqua"]
+	else:
+		return ["Frozen","white"]
+
 func get_tile_color(perlin): #Tile color is chosen by its height, using its noise value
 	if perlin > 0.8:
 		return 5
@@ -558,29 +638,6 @@ func get_temperature_color(temperature):
 	else:
 		return 0
 
-
-func apply_airmass(airmass):
-	var point_dict = {}
-	var start_point = airmass.get_point_position(0)/4
-	for i in range(0,airmass.get_point_count()): #Need a better solution. Im not sure if storing all points in a list and searching it is viable
-		var current_point = airmass.get_point_position(i)/4
-		for x in range(-16,16):
-			for y in range(-16,16):
-				#We look for the closest tiles in range 10 near our point
-				var new_point = current_point + Vector2(x,y)
-				if new_point.x >= 0 and new_point.y >= 0 and new_point.x < size_x and new_point.y < size_y: #boundary check
-					if !(point_dict.has(new_point)):
-						var old_temperature = biome_parameters[new_point][0]
-						var old_rain = biome_parameters[new_point][1]
-						var height = biome_parameters[new_point][3]
-						var new_temperature = calculate_new_tile_parameters(old_temperature,biome_parameters[start_point][0],max(x,y))
-						var new_rain = calculate_new_tile_parameters(old_rain,biome_parameters[start_point][1],max(x,y))
-						var new_type = set_biome(height,new_rain,new_temperature) # replace
-						biome_parameters[new_point] = [new_temperature,new_rain,new_type,biome_parameters[new_point][3]] #After all calculations are ready, we update the values
-						point_dict[new_point] = 1
-	
-	
-	
 func calculate_new_tile_parameters(current_value,modifier,distance): #damn hahaha, is there a better way to do this?
 	distance = abs(distance)
 	match distance:
@@ -601,35 +658,6 @@ func calculate_new_tile_parameters(current_value,modifier,distance): #damn hahah
 		14: return current_value + modifier * 0.008
 		15: return current_value + modifier * 0.004
 		16: return current_value + modifier * 0.002
-		
-
-
-func redraw_climate_maps(): #debug function, probably not needed after
-	for x in range(0,size_x):
-		for y in range(0,size_y):
-				
-				rain_tile = get_rain_color(biome_parameters[Vector2(x,y)][1])
-				temperature_tile = get_temperature_color(biome_parameters[Vector2(x,y)][0])
-				$TemperatureMap.set_cell(x-size_x,y-size_y,temperature_tile)
-				$rainMap.set_cell(x-size_x,y,rain_tile)
-				
-	draw_biomes()
-func modify_temperature(temperature, height,y):
-	
-	var exponent : float
-	if hemisphere == true:
-		exponent = float(y)/size_y
-	else:
-		exponent = float(-y)/size_y
-	if height > 0:
-		return temperature + exponent/8 - abs(pow(height,1))
-	else:
-		 return temperature + exponent/8
-func modify_rain(rain, height):
-	if height < 0:
-		return rain + pow(height,2)*2
-	else:
-		return rain
 
 func print_biome(value):
 	value = int(value)
@@ -695,7 +723,7 @@ func biome_color_code(value):
 		biomes.SWAMP : return "#78975e"
 		biomes.TAIGA : return "#a1e2c0"
 		biomes.TUNDRA : return "white"
-		
+
 func get_save_files():
 	var files = []
 	var dir = Directory.new()
@@ -707,9 +735,7 @@ func get_save_files():
 		files += [file]
 		file = dir.get_next()
 	return files
-func _input(event):
-	if event is InputEventMouseMotion:
-		mouse_map_information()
+
 
 
 
@@ -750,8 +776,22 @@ func _on_worlds_item_selected(index):
 	pass # Replace with function body.
 
 
+
+######################INPUT HANDLING################################################
+func _input(event):
+	if event is InputEventMouseMotion:
+		mouse_map_information()
 #########################################USER INTERFACE SIGNALS##########################
 func _on_generate_pressed():
+	if size == sizes.SMALL:
+		$screen.zoom = Vector2(1.5,1.5)
+	elif size == sizes.MEDIUM:
+		$screen.zoom = Vector2(3.0,3.0)
+	elif size == sizes.LARGE:
+		$screen.zoom = Vector2(6.0,6.0)
+	$screen.position = $biomeMap.map_to_world(Vector2(size_x/2,size_y/2))
+	
+	$tileInformation/Control.visible = true
 	game_generate()
 
 func _on_Small_toggled(button_pressed):
@@ -759,6 +799,7 @@ func _on_Small_toggled(button_pressed):
 	if button_pressed == true:
 		size_x = 128
 		size_y = 128
+		size = sizes.SMALL
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Medium.pressed = false
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Large.pressed = false
 
@@ -768,6 +809,7 @@ func _on_Medium_toggled(button_pressed):
 	if button_pressed == true:
 		size_x = 256
 		size_y = 256
+		size = sizes.MEDIUM
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Small.pressed = false
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Large.pressed = false
 
@@ -777,6 +819,7 @@ func _on_Large_toggled(button_pressed):
 	if button_pressed == true:
 		size_x = 512
 		size_y = 512
+		size = sizes.LARGE
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Medium.pressed = false
 		$HUD/UI/buttons/VBoxContainer/SizeButtons/Small.pressed = false
 

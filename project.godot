@@ -18,6 +18,7 @@ config/icon="res://icon.png"
 
 AudioManager="*res://scenes/AudioManager.tscn"
 GlobalVariables="*res://scripts/GlobalVariables.gd"
+QuitPopup="*res://scenes/quitPopup.tscn"
 
 [display]
 

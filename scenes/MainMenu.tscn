@@ -64,10 +64,18 @@ rect_min_size = Vector2( 0, 48 )
 theme = ExtResource( 3 )
 text = "Load Game"
 
-[node name="exit" type="Button" parent="buttonholder/VBoxContainer"]
+[node name="options" type="Button" parent="buttonholder/VBoxContainer"]
 margin_top = 104.0
 margin_right = 643.0
 margin_bottom = 152.0
+rect_min_size = Vector2( 0, 48 )
+theme = ExtResource( 3 )
+text = "Options"
+
+[node name="exit" type="Button" parent="buttonholder/VBoxContainer"]
+margin_top = 156.0
+margin_right = 643.0
+margin_bottom = 204.0
 rect_min_size = Vector2( 0, 48 )
 theme = ExtResource( 3 )
 text = "Quit Game"
@@ -81,4 +89,5 @@ script = ExtResource( 5 )
 
 [connection signal="pressed" from="buttonholder/VBoxContainer/newGame" to="." method="_on_newGame_pressed"]
 [connection signal="pressed" from="buttonholder/VBoxContainer/loadGame" to="." method="_on_loadGame_pressed"]
+[connection signal="pressed" from="buttonholder/VBoxContainer/options" to="." method="_on_options_pressed"]
 [connection signal="pressed" from="buttonholder/VBoxContainer/exit" to="." method="_on_exit_pressed"]

@@ -21,8 +21,6 @@ var biome_parameters = {} #Key is position on tilegrid, values are (temperature,
 export var hemisphere : bool = true # false = south , true = north
 
 
-
-
 var air_masses = {} #Dictionary containing each air mais route,speed, temperature and rain values from the starting point
 var air_mass_count : int = 0
 var speed : int = 0 # the speed will be used to enable air masses to go up
@@ -30,9 +28,8 @@ var going_up : bool = false
 var empty_count = 0
 
 var game_name = ""
-var saves_updated = false
-var generated = false
-var size_changed = false
+var generated = false # stops mouse_map_information from working if there is no world
+var size_changed = false #stops mouse_map_information from working if the size has changed
 
 enum biomes{
 	DESERT = 0,
@@ -88,12 +85,34 @@ class StringHelper:
 
 		return Vector2.ZERO
 
+func clamp_string(string):
+	if string == "0.00":
+		return "0.01"
+	elif string == "-0.00":
+		return "-0.01"
+	else:
+		return string
+		
 func save(savename):
 	var gameData = {
 		worldMap = biome_parameters,
 		worldSize = size
 	}
+	var biome_param_save = {}
+	for key in biome_parameters:
+		var t = "%1.2f" % biome_parameters[key][0]
+		t = clamp_string(t)
+		t = float(t)
+		var r = "%1.2f" % biome_parameters[key][1]
+		r = clamp_string(r)
+		r = float(r)
+		var type = biome_parameters[key][2]
+		var h = "%1.2f" % biome_parameters[key][3]
+		h = clamp_string(h)
+		h = float(h)
+		biome_param_save[key] = [t,r,type,h] 
 	var data = gameData
+	data.worldMap = biome_param_save
 	var saveGame = File.new()
 	saveGame.open("user://Saves/"+savename+".sve", File.WRITE)
 	saveGame.store_line(to_json(data))
@@ -113,10 +132,34 @@ func load_game(name):
 	
 	var aux_dir = current_line["worldMap"]
 	for key in aux_dir.keys():
+		#var t = aux_dir[key][0]
+		#var r = aux_dir[key][1]
+		#var type = aux_dir[key][2]
+		#var h = aux_dir[key][3]
+		#biome_parameters[StringHelper.string_to_vector2(key)] = [t,r,type,h]
 		biome_parameters[StringHelper.string_to_vector2(key)] = aux_dir[key]
 	size = current_line["worldSize"]
-		
+	
+	
+	if size == sizes.SMALL:
+		size_x = 128
+		size_y = 128
+	elif size == sizes.MEDIUM:
+		size_x = 256
+		size_y = 256
+	elif size == sizes.LARGE:
+		size_x = 512
+		size_y = 512
 	loadGame.close()
+	
+	if size == sizes.SMALL:
+		$screen.zoom = Vector2(1.5,1.5)
+	elif size == sizes.MEDIUM:
+		$screen.zoom = Vector2(3.0,3.0)
+	elif size == sizes.LARGE:
+		$screen.zoom = Vector2(6.0,6.0)
+	$screen.position = $biomeMap.map_to_world(Vector2(size_x/2,size_y/2))
+	draw_biomes()
 		
 
 func _ready():
@@ -512,6 +555,7 @@ func redraw_climate_maps(): #debug function, probably not needed after
 				$rainMap.set_cell(x-size_x,y,rain_tile)
 				
 	draw_biomes()
+
 func modify_temperature(temperature, height,y):
 	
 	var exponent : float
@@ -525,7 +569,7 @@ func modify_temperature(temperature, height,y):
 		 return temperature + exponent/8
 func modify_rain(rain, height):
 	if height < 0:
-		return rain + 0.25
+		return rain + 0.25 ## higher humidity if its in the ocean
 	else:
 		return rain
 
@@ -731,17 +775,6 @@ func biome_color_code(value):
 		biomes.TAIGA : return "#a1e2c0"
 		biomes.TUNDRA : return "white"
 
-
-
-
-
-
-
-
-
-
-
-
 func _on_load_pressed():
 	print(game_name)
 	var err = load_game(game_name)
@@ -750,23 +783,6 @@ func _on_load_pressed():
 	else:
 		redraw_climate_maps()
 	
-
-func _on_worlds_pressed():
-	if saves_updated == false:
-		var existing_games = GlobalVariables.get_save_files()
-		if existing_games.size() != 0:
-			for game in existing_games:
-				game = game.left(game.length()-4)
-				$GUI/saveLoad/VBoxContainer/HBoxContainer/worlds.add_item(game)
-		saves_updated = true
-
-
-func _on_worlds_item_selected(index):
-	game_name = $GUI/saveLoad/VBoxContainer/HBoxContainer/worlds.get_item_text(index)
-	pass # Replace with function body.
-
-
-
 ######################INPUT HANDLING################################################
 func _input(event):
 	if event is InputEventMouseMotion:

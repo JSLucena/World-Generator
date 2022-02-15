@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/rain_temp.png-054954ea9027f87dd77cb2314030a4fe.stex"
+path="res://.import/test_box.png-ee7765b37e00bf61fa30f3f5a970fceb.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/tileset/rain_temp.png"
-dest_files=[ "res://.import/rain_temp.png-054954ea9027f87dd77cb2314030a4fe.stex" ]
+source_file="res://resources/images/test_box.png"
+dest_files=[ "res://.import/test_box.png-ee7765b37e00bf61fa30f3f5a970fceb.stex" ]
 
 [params]
 
@@ -20,7 +20,7 @@ compress/hdr_mode=0
 compress/bptc_ldr=0
 compress/normal_map=0
 flags/repeat=0
-flags/filter=false
+flags/filter=true
 flags/mipmaps=false
 flags/anisotropic=false
 flags/srgb=2

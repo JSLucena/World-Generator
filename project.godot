@@ -11,8 +11,25 @@ config_version=4
 [application]
 
 config/name="game_project"
-run/main_scene="res://scenes/Generator.tscn"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/icon="res://icon.png"
+
+[autoload]
+
+AudioManager="*res://scenes/AudioManager.tscn"
+GlobalVariables="*res://scripts/GlobalVariables.gd"
+QuitPopup="*res://scenes/quitPopup.tscn"
+
+[display]
+
+window/size/width=1280
+window/size/height=720
+window/stretch/mode="viewport"
+window/stretch/aspect="keep"
+
+[global]
+
+aliasing=false
 
 [input]
 

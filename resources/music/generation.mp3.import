@@ -1,0 +1,15 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+path="res://.import/generation.mp3-e6fba94ae5317021f89dfa63de4cd798.mp3str"
+
+[deps]
+
+source_file="res://resources/music/generation.mp3"
+dest_files=[ "res://.import/generation.mp3-e6fba94ae5317021f89dfa63de4cd798.mp3str" ]
+
+[params]
+
+loop=true
+loop_offset=0

@@ -1,0 +1,29 @@
+deserto -> max temperatura / min umidade
+Savana	-> alta temperatura / min umidade
+Badland	-> media temperatura / min umidade
+shrubland congelado	-> baixa temperatura / min umidade
+deserto glacial	-> min temperatura / min umidade
+
+caatinga -> max temperatura / baixa umidade
+shrubland	-> alta temperatura / baixa umidade
+planicie	-> media temperatura / baixa umidade
+rochoso	-> baixa temperatura / baixa umidade
+congelado	-> min temperatura / baixa umidade
+
+Folhosa tropical seca	-> max temperatura / media umidade
+Conifera tropical	-> alta temperatura / media umidade
+Praia	-> media temperatura / media umidade
+planicie fria	-> baixa temperatura / media umidade
+prado frio	-> min temperatura / media umidade
+
+Savana inundada-> max temperatura / alta umidade
+Folhosas tropical	-> alta temperatura / alta umidade
+rios,lagos	-> media temperatura / alta umidade
+prado	-> baixa temperatura / alta umidade
+bosque	-> min temperatura / alta umidade
+
+Floresta tropical	-> max temperatura / max umidade
+Pantano	-> alta temperatura / max umidade
+Floresta mista	-> media temperatura / max umidade
+taiga	-> baixa temperatura / max umidade
+tundra	-> min temperatura / max umidade

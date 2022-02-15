@@ -1,0 +1,21 @@
+[remap]
+
+importer="wav"
+type="AudioStreamSample"
+path="res://.import/buttonToggle.wav-11863a04ce506107f4513e83f6435507.sample"
+
+[deps]
+
+source_file="res://resources/SFX/buttonToggle.wav"
+dest_files=[ "res://.import/buttonToggle.wav-11863a04ce506107f4513e83f6435507.sample" ]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop=false
+compress/mode=0

@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/rain_temp.png-054954ea9027f87dd77cb2314030a4fe.stex"
+path="res://.import/test_button.png-7c4740d7843009fff3747f49ef04bd1c.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/tileset/rain_temp.png"
-dest_files=[ "res://.import/rain_temp.png-054954ea9027f87dd77cb2314030a4fe.stex" ]
+source_file="res://resources/images/test_button.png"
+dest_files=[ "res://.import/test_button.png-7c4740d7843009fff3747f49ef04bd1c.stex" ]
 
 [params]
 
